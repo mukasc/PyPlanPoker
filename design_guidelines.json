@@ -1,0 +1,141 @@
+{
+  "project_name": "PyPlanPoker",
+  "design_philosophy": {
+    "identity": "E1 - The Anti-AI Designer",
+    "core_concept": "The Night Shift Casino",
+    "vibe": "Professional, Focused, High-Contrast, Developer-Centric",
+    "principles": [
+      "Fusion: Casino Table warmth x IDE precision",
+      "Emotion: Focus and Clarity",
+      "Content: Data is King (Fibonacci numbers are the heroes)",
+      "Contrast: Deep Slate backgrounds vs Neon Emerald actions"
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "JetBrains Mono, monospace",
+      "body": "Inter, sans-serif",
+      "code": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl font-semibold tracking-tight",
+      "h3": "text-2xl font-medium",
+      "p": "text-base leading-relaxed text-slate-400",
+      "small": "text-sm text-slate-500"
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": {
+        "default": "bg-slate-950",
+        "surface": "bg-slate-900",
+        "surface_hover": "bg-slate-800"
+      },
+      "text": {
+        "primary": "text-slate-200",
+        "secondary": "text-slate-400",
+        "muted": "text-slate-500",
+        "inverse": "text-slate-950"
+      },
+      "border": {
+        "default": "border-slate-800",
+        "active": "border-indigo-500/50"
+      },
+      "brand": {
+        "primary": "bg-emerald-600 hover:bg-emerald-500 text-white",
+        "secondary": "bg-indigo-600 hover:bg-indigo-500 text-white",
+        "accent": "text-indigo-400"
+      },
+      "status": {
+        "success": "text-emerald-400",
+        "warning": "text-amber-400",
+        "error": "text-rose-400",
+        "info": "text-sky-400"
+      }
+    },
+    "gradients": {
+      "card_back": "bg-gradient-to-br from-indigo-600 to-violet-700",
+      "hero_glow": "bg-gradient-to-r from-emerald-500/20 to-indigo-500/20 blur-3xl"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container_padding": "p-6 md:p-12",
+      "section_gap": "gap-8",
+      "item_gap": "gap-4"
+    },
+    "grids": {
+      "dashboard": "grid grid-cols-1 lg:grid-cols-12 gap-6 h-screen overflow-hidden",
+      "poker_table": "col-span-1 lg:col-span-9 relative flex flex-col items-center justify-center bg-slate-950/50 rounded-3xl border border-slate-800/50 shadow-2xl",
+      "sidebar": "col-span-1 lg:col-span-3 bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-6"
+    },
+    "radius": {
+      "default": "rounded-lg",
+      "card": "rounded-xl",
+      "button": "rounded-md"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-2.5 rounded-md shadow-lg shadow-emerald-900/20 transition-all hover:-translate-y-0.5 active:translate-y-0",
+      "secondary": "bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-6 py-2.5 rounded-md border border-slate-700 transition-all",
+      "ghost": "bg-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 px-4 py-2 rounded-md transition-colors",
+      "destructive": "bg-rose-900/30 hover:bg-rose-900/50 text-rose-400 border border-rose-900/50 px-4 py-2 rounded-md transition-colors"
+    },
+    "cards": {
+      "poker_card": {
+        "base": "w-24 h-36 md:w-32 md:h-48 rounded-xl shadow-xl cursor-pointer transition-all duration-300 transform hover:-translate-y-2 perspective-1000",
+        "face_down": "bg-gradient-to-br from-indigo-600 to-violet-700 border-2 border-indigo-400/30 flex items-center justify-center",
+        "face_up": "bg-slate-100 text-slate-900 border-2 border-slate-300 flex items-center justify-center font-mono text-4xl font-bold",
+        "selected": "ring-4 ring-emerald-500 ring-offset-4 ring-offset-slate-950 -translate-y-4"
+      },
+      "task_card": "bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 p-4 rounded-lg transition-colors cursor-pointer group"
+    },
+    "inputs": {
+      "default": "bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-200 placeholder:text-slate-600 rounded-md px-4 py-2.5 w-full transition-all"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-slate-900/70 border border-slate-800/50",
+    "shadows": {
+      "glow": "shadow-[0_0_20px_rgba(16,185,129,0.15)]",
+      "deep": "shadow-2xl shadow-black/50"
+    },
+    "textures": "bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none absolute inset-0"
+  },
+  "assets": {
+    "images": {
+      "landing_hero": "https://images.unsplash.com/photo-1763568258752-fe55f4ab7267?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "card_pattern": "https://images.unsplash.com/photo-1674841151913-23cf36afead6?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "empty_state": "https://images.unsplash.com/photo-1641803935768-ece79447bd14?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "icons": "lucide-react"
+  },
+  "motion": {
+    "transitions": "transition-all duration-200 ease-out",
+    "animations": {
+      "card_flip": "animate-flip",
+      "fade_in": "animate-in fade-in duration-500",
+      "slide_up": "animate-in slide-in-from-bottom-4 duration-500"
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. SETUP: Ensure 'lucide-react' and 'clsx' 'tailwind-merge' are installed.",
+    "2. THEME: Force dark mode by adding 'dark' class to the html or body tag permanently.",
+    "3. LAYOUT: Use the 'Control Room' grid strategy for the main game view. The table is the stage.",
+    "4. COMPONENTS: Customize Shadcn components to match the 'Slate-950' theme. Do not use default white backgrounds.",
+    "5. LOGIC: Ensure the 'Spectator Mode' toggle is clearly visible on the join screen.",
+    "6. GAMEPLAY: The 'Reveal' action must be dramatic. Use a slight delay or stagger for revealing cards if possible.",
+    "7. TASK LIST: Keep it in a sidebar (collapsible on mobile). Active task should be highlighted with an Emerald border.",
+    "8. TESTING: Add data-testid to all interactive elements (buttons, cards, inputs)."
+  ],
+  "universal_guidelines": [
+    "Do not use generic centered layouts.",
+    "Create depth through layered design elements.",
+    "Use glass-morphism effects with backdrop filters.",
+    "Every interaction needs micro-animations.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Never use AI assistant Emoji characters."
+  ]
+}
