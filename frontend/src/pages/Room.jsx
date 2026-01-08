@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import useGameStore from '../store/gameStore';
-import { connectSocket, disconnectSocket, getSocket } from '../lib/socket';
+import { connectSocket, disconnectSocket } from '../lib/socket';
 import { Toaster, toast } from '../components/ui/sonner';
 
-// Components
 import Sidebar from '../components/game/Sidebar';
 import PokerTable from '../components/game/PokerTable';
 import CardHand from '../components/game/CardHand';
@@ -12,161 +12,158 @@ import AdminControls from '../components/game/AdminControls';
 import TaskPanel from '../components/game/TaskPanel';
 
 const FIBONACCI = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '?'];
+const API = '/api'; 
 
 const Room = () => {
-  const { roomId } = useParams();
+  const params = useParams();
+  const roomId = params.roomId ? params.roomId.toUpperCase() : '';
   const navigate = useNavigate();
+  
   const { 
-    user, 
-    room, 
-    roomState, 
-    setRoomState, 
-    selectedCard, 
-    setSelectedCard,
-    setIsConnected,
-    leaveRoom,
-    isConnected 
+    user, room, roomState, setRoomState, 
+    selectedCard, setSelectedCard, setIsConnected, leaveRoom, isConnected 
   } = useGameStore();
 
   const [showTaskPanel, setShowTaskPanel] = useState(false);
+  
+  // Ref para evitar loops na função de fetch
+  const roomIdRef = useRef(roomId);
+  useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
 
-  // Redirect if no user session
+  // Redireciona se sem sessão
   useEffect(() => {
-    if (!user || !room) {
-      navigate('/');
-    }
+    if (!user || !room) navigate('/');
   }, [user, room, navigate]);
 
-  // Socket connection
-  useEffect(() => {
-    if (!user || !room) return;
+  // Ref para rastrear qual era a tarefa ativa anterior (para saber quando mudou)
+  const prevActiveTaskId = useRef(null);
 
+  // --- CORREÇÃO: Limpar Seleção Automática ---
+  useEffect(() => {
+    const currentActiveId = roomState.active_task?.id;
+    const isRevealed = roomState.room?.cards_revealed;
+
+    // Se mudou a tarefa ativa, limpa a seleção
+    if (prevActiveTaskId.current !== currentActiveId) {
+      setSelectedCard(null);
+      prevActiveTaskId.current = currentActiveId;
+    }
+
+    // Se as cartas foram escondidas (reset), limpa a seleção
+    // (A menos que eu ainda não tenha votado, mas aqui simplificamos limpando)
+    if (!isRevealed && selectedCard && !roomState.votes.find(v => v.user_id === user.id)) {
+       setSelectedCard(null);
+    }
+  }, [roomState, selectedCard, setSelectedCard, user.id]);
+
+  // Função centralizada para buscar estado
+  const fetchState = useCallback(async () => {
+    if (!roomIdRef.current) return;
+    try {
+      const response = await axios.get(`${API}/rooms/${roomIdRef.current}/state`);
+      // Só atualiza se houver diferença real (opcional, aqui atualizamos direto)
+      setRoomState(response.data);
+    } catch (error) {
+      console.error("Fetch error:", error);
+    }
+  }, [setRoomState]);
+
+  // --- 1. BUSCA INICIAL E POLLING (REDE DE SEGURANÇA) ---
+  // Isso garante que o jogo funcione mesmo sem socket!
+  useEffect(() => {
+    fetchState(); // Busca imediata
+
+    // Atualiza a cada 2 segundos (Polling)
+    const interval = setInterval(() => {
+      fetchState();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [fetchState]);
+
+  // --- 2. CONEXÃO SOCKET (REAL-TIME OTIMIZADO) ---
+  useEffect(() => {
+    if (!user || !roomId) return;
     const socket = connectSocket();
 
-    socket.on('connect', () => {
-      console.log('Socket connected');
-      setIsConnected(true);
-      
-      // Join the room
-      socket.emit('join_room', {
-        room_id: roomId,
-        user_id: user.id,
-      });
-    });
+    const joinRoom = () => {
+      console.log(`🔌 Joining room ${roomId}`);
+      socket.emit('join_room', { room_id: roomId, user_id: user.id });
+    };
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-      setIsConnected(false);
-    });
-
+    socket.on('connect', () => { setIsConnected(true); joinRoom(); });
+    socket.on('disconnect', () => setIsConnected(false));
+    
+    // Se o socket mandar update, atualizamos na hora (mais rápido que o polling)
     socket.on('state_update', (state) => {
-      console.log('State update received:', state);
+      console.log('⚡ Socket Update');
       setRoomState(state);
     });
-
+    
     socket.on('reveal_votes', (state) => {
-      console.log('Votes revealed:', state);
       setRoomState(state);
       toast.success('Cards revealed!');
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      toast.error('Connection error. Retrying...');
-    });
+    if (socket.connected) { setIsConnected(true); joinRoom(); }
 
     return () => {
-      disconnectSocket();
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('state_update');
+      socket.off('reveal_votes');
     };
-  }, [user, room, roomId, setRoomState, setIsConnected]);
+  }, [user, roomId, setRoomState, setIsConnected]);
 
-  const handleVote = useCallback((value) => {
-    if (!user || user.is_spectator) return;
-    if (roomState.room?.cards_revealed) return;
-    if (!roomState.active_task) {
-      toast.error('No active task to vote on');
-      return;
+  // --- ACTIONS (VIA HTTP) ---
+  
+  const handleAction = async (endpoint, payload, successMsg) => {
+    try {
+      await axios.post(`${API}/${endpoint}`, { ...payload, room_id: roomId, user_id: user.id });
+      if (successMsg) toast.success(successMsg);
+      fetchState(); // Força atualização imediata localmente
+    } catch (error) {
+      console.error(`Error in ${endpoint}:`, error);
+      toast.error('Action failed');
     }
-
-    setSelectedCard(value);
-    
-    const socket = getSocket();
-    socket.emit('cast_vote', {
-      user_id: user.id,
-      task_id: roomState.active_task.id,
-      value: value,
-    });
-  }, [user, roomState, setSelectedCard]);
-
-  const handleRevealCards = useCallback(() => {
-    if (!user?.is_admin) return;
-    
-    const socket = getSocket();
-    socket.emit('reveal_cards', {
-      room_id: roomId,
-      user_id: user.id,
-    });
-  }, [user, roomId]);
-
-  const handleResetVotes = useCallback(() => {
-    if (!user?.is_admin) return;
-    
-    const socket = getSocket();
-    socket.emit('reset_votes', {
-      room_id: roomId,
-      user_id: user.id,
-      task_id: roomState.active_task?.id,
-    });
-    setSelectedCard(null);
-    toast.info('Votes cleared - ready for revote');
-  }, [user, roomId, roomState.active_task, setSelectedCard]);
-
-  const handleSetActiveTask = useCallback((taskId) => {
-    if (!user?.is_admin) return;
-    
-    const socket = getSocket();
-    socket.emit('set_active_task', {
-      room_id: roomId,
-      task_id: taskId,
-      user_id: user.id,
-    });
-    setSelectedCard(null);
-  }, [user, roomId, setSelectedCard]);
-
-  const handleCompleteTask = useCallback((taskId, score) => {
-    if (!user?.is_admin) return;
-    
-    const socket = getSocket();
-    socket.emit('complete_task', {
-      room_id: roomId,
-      user_id: user.id,
-      task_id: taskId,
-      final_score: score,
-    });
-    setSelectedCard(null);
-    toast.success(`Task completed with ${score} points`);
-  }, [user, roomId, setSelectedCard]);
+  };
 
   const handleAddTask = useCallback((title, description) => {
-    const socket = getSocket();
-    socket.emit('add_task', {
-      room_id: roomId,
-      title: title,
-      description: description,
-    });
-    toast.success('Task added');
-  }, [roomId]);
+    handleAction('tasks', { title, description }, 'Task added');
+  }, [roomId, user]);
+
+  const handleVote = useCallback((value) => {
+      if (!roomState.active_task) return;
+      setSelectedCard(value);
+      // CORREÇÃO: Convertemos para String() para satisfazer o Backend
+      handleAction('vote', { 
+        task_id: roomState.active_task.id, 
+        value: String(value) 
+      }, null);
+    }, [roomState.active_task, roomId, user]);
+
+  const handleRevealCards = useCallback(() => {
+    handleAction('reveal', {}, null);
+  }, [roomId, user]);
+
+  const handleResetVotes = useCallback(() => {
+    handleAction('reset', { task_id: roomState.active_task?.id }, 'Votes cleared');
+    setSelectedCard(null);
+  }, [roomId, user, roomState.active_task]);
+
+  const handleSetActiveTask = useCallback((taskId) => {
+    handleAction('active-task', { task_id: taskId }, null);
+    setSelectedCard(null);
+  }, [roomId, user]);
+
+  const handleCompleteTask = useCallback((taskId, score) => {
+    handleAction('complete', { task_id: taskId, final_score: score }, `Completed: ${score}`);
+    setSelectedCard(null);
+  }, [roomId, user]);
 
   const handleDeleteTask = useCallback((taskId) => {
-    if (!user?.is_admin) return;
-    
-    const socket = getSocket();
-    socket.emit('delete_task', {
-      room_id: roomId,
-      user_id: user.id,
-      task_id: taskId,
-    });
-  }, [user, roomId]);
+    handleAction('delete-task', { task_id: taskId }, 'Task deleted');
+  }, [roomId, user]);
 
   const handleLeaveRoom = useCallback(() => {
     disconnectSocket();
@@ -174,9 +171,11 @@ const Room = () => {
     navigate('/');
   }, [leaveRoom, navigate]);
 
-  if (!user || !room) {
-    return null;
-  }
+  const handleCancelTask = useCallback((taskId) => {
+    handleAction('cancel-task', { task_id: taskId }, 'Task cancelled');
+  }, [roomId, user]);
+
+  if (!user || !room) return null;
 
   const cardsRevealed = roomState.room?.cards_revealed || false;
   const activeTask = roomState.active_task;
@@ -187,9 +186,7 @@ const Room = () => {
   return (
     <div className="h-screen bg-slate-950 overflow-hidden">
       <Toaster position="top-center" theme="dark" />
-      
       <div className="grid grid-cols-1 lg:grid-cols-12 h-full">
-        {/* Sidebar */}
         <Sidebar
           roomId={roomId}
           roomName={roomState.room?.name || room.name}
@@ -200,23 +197,15 @@ const Room = () => {
           onLeave={handleLeaveRoom}
           isConnected={isConnected}
         />
-
-        {/* Main Area */}
         <main className="col-span-1 lg:col-span-9 flex flex-col h-full overflow-hidden">
-          {/* Header with Room Info & Admin Controls */}
           <header className="flex-shrink-0 p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-200 font-mono">
                   {activeTask ? activeTask.title : 'No Active Task'}
                 </h2>
-                {activeTask?.description && (
-                  <p className="text-sm text-slate-400 mt-1 max-w-xl truncate">
-                    {activeTask.description}
-                  </p>
-                )}
+                {activeTask?.description && <p className="text-sm text-slate-400 mt-1 max-w-xl truncate">{activeTask.description}</p>}
               </div>
-              
               {user.is_admin && (
                 <AdminControls
                   onReveal={handleRevealCards}
@@ -231,8 +220,6 @@ const Room = () => {
               )}
             </div>
           </header>
-
-          {/* Poker Table */}
           <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
             <PokerTable
               users={roomState.users}
@@ -242,8 +229,6 @@ const Room = () => {
               activeTask={activeTask}
             />
           </div>
-
-          {/* Card Hand (for non-spectators) */}
           {!user.is_spectator && (
             <div className="flex-shrink-0 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm">
               <CardHand
@@ -254,25 +239,16 @@ const Room = () => {
               />
             </div>
           )}
-
-          {/* Spectator Notice */}
-          {user.is_spectator && (
-            <div className="flex-shrink-0 p-4 border-t border-slate-800 bg-slate-900/80 text-center">
-              <p className="text-slate-400 text-sm">
-                You are observing this session. You cannot vote.
-              </p>
-            </div>
-          )}
+          {user.is_spectator && <div className="flex-shrink-0 p-4 border-t border-slate-800 bg-slate-900/80 text-center"><p className="text-slate-400 text-sm">Spectator Mode</p></div>}
         </main>
       </div>
-
-      {/* Task Panel Modal */}
       {showTaskPanel && (
         <TaskPanel
           tasks={roomState.tasks}
           activeTaskId={activeTask?.id}
           onSetActive={handleSetActiveTask}
           onComplete={handleCompleteTask}
+          onCancel={handleCancelTask} // <--- PASSE A NOVA PROP AQUI
           onAdd={handleAddTask}
           onDelete={handleDeleteTask}
           onClose={() => setShowTaskPanel(false)}

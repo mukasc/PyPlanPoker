@@ -1,32 +1,41 @@
 import { io } from 'socket.io-client';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+let socket;
 
-let socket = null;
-
-export const getSocket = () => {
+export const connectSocket = () => {
   if (!socket) {
-    socket = io(BACKEND_URL, {
-      transports: ['websocket', 'polling'],
-      autoConnect: false,
+    const baseUrl = window.location.origin;
+    
+    // --- MUDANÇA CRUCIAL AQUI ---
+    // Alteramos o path para começar com /api, assim o Proxy deixa passar
+    socket = io(baseUrl, {
+      path: '/api/socket.io/', // <--- AGORA VAI PASSAR PELO PROXY
+      transports: ['polling'],
+      reconnection: true,
+      autoConnect: true,
+    });
+    
+    socket.on('connect_error', (err) => {
+      console.log('Socket Error:', err.message);
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ SOCKET CONECTADO VIA API PATH!');
     });
   }
+  
+  if (!socket.connected) {
+    socket.connect();
+  }
+
   return socket;
 };
 
-export const connectSocket = () => {
-  const s = getSocket();
-  if (!s.connected) {
-    s.connect();
-  }
-  return s;
-};
-
 export const disconnectSocket = () => {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
+  if (socket) socket.disconnect();
 };
 
-export default getSocket;
+export const getSocket = () => {
+  if (!socket) return connectSocket();
+  return socket;
+};

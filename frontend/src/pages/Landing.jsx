@@ -9,7 +9,7 @@ import { Toaster, toast } from '../components/ui/sonner';
 import { Users, Plus, LogIn, Eye, Sparkles } from 'lucide-react';
 import useGameStore from '../store/gameStore';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `/api`;
 
 const Landing = () => {
   const navigate = useNavigate();
