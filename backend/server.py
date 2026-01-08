@@ -491,10 +491,10 @@ async def delete_task(sid, data):
     await broadcast_room_state(room_id)
 
 # Include the router
-app.include_router(api_router)
+fastapi_app.include_router(api_router)
 
 # CORS middleware
-app.add_middleware(
+fastapi_app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
@@ -502,7 +502,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.on_event("shutdown")
+@fastapi_app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
 
