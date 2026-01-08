@@ -99,11 +99,11 @@ sio = socketio.AsyncServer(
 )
 
 # Create FastAPI app
-app = FastAPI()
+fastapi_app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 # Create ASGI app combining FastAPI and Socket.IO
-socket_app = socketio.ASGIApp(sio, app)
+socket_app = socketio.ASGIApp(sio, fastapi_app)
 
 # In-memory mapping of socket IDs to user data
 socket_users: Dict[str, Dict[str, str]] = {}
@@ -506,4 +506,5 @@ app.add_middleware(
 async def shutdown_db_client():
     client.close()
 
-# The socket_app is what uvicorn should run
+# Export socket_app as app for uvicorn
+app = socket_app
