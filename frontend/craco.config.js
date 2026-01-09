@@ -2,37 +2,44 @@
 const path = require("path");
 require("dotenv").config();
 
-// Check if we're in development/preview mode (not production build)
-// Craco sets NODE_ENV=development for start, NODE_ENV=production for build
+// Check if we're in development/preview mode
 const isDevServer = process.env.NODE_ENV !== "production";
 
 // Environment variable overrides
 const config = {
   enableHealthCheck: process.env.ENABLE_HEALTH_CHECK === "true",
-  enableVisualEdits: isDevServer, // Only enable during dev server
+  enableVisualEdits: isDevServer,
 };
 
-// Conditionally load visual edits modules only in dev mode
+// Conditionally load visual edits modules
 let setupDevServer;
 let babelMetadataPlugin;
 
 if (config.enableVisualEdits) {
-  setupDevServer = require("./plugins/visual-edits/dev-server-setup");
-  babelMetadataPlugin = require("./plugins/visual-edits/babel-metadata-plugin");
+  try {
+    setupDevServer = require("./plugins/visual-edits/dev-server-setup");
+    babelMetadataPlugin = require("./plugins/visual-edits/babel-metadata-plugin");
+  } catch (e) {
+    console.warn("Visual edits plugins not found, skipping...");
+  }
 }
 
-// Conditionally load health check modules only if enabled
+// Conditionally load health check modules
 let WebpackHealthPlugin;
 let setupHealthEndpoints;
 let healthPluginInstance;
 
 if (config.enableHealthCheck) {
-  WebpackHealthPlugin = require("./plugins/health-check/webpack-health-plugin");
-  setupHealthEndpoints = require("./plugins/health-check/health-endpoints");
-  healthPluginInstance = new WebpackHealthPlugin();
+  try {
+    WebpackHealthPlugin = require("./plugins/health-check/webpack-health-plugin");
+    setupHealthEndpoints = require("./plugins/health-check/health-endpoints");
+    healthPluginInstance = new WebpackHealthPlugin();
+  } catch (e) {
+    console.warn("Health check plugins not found, skipping...");
+  }
 }
 
-const webpackConfig = {
+module.exports = {
   eslint: {
     configure: {
       extends: ["plugin:react-hooks/recommended"],
@@ -46,76 +53,56 @@ const webpackConfig = {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
-    configure: (webpackConfig) => {
-
-      // Add ignored patterns to reduce watched directories
-        webpackConfig.watchOptions = {
-          ...webpackConfig.watchOptions,
-          ignored: [
-            '**/node_modules/**',
-            '**/.git/**',
-            '**/build/**',
-            '**/dist/**',
-            '**/coverage/**',
-            '**/public/**',
+    configure: (webpackConfig, { env, paths }) => {
+      // 1. Add ignored patterns
+      webpackConfig.watchOptions = {
+        ...webpackConfig.watchOptions,
+        ignored: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/build/**',
+          '**/dist/**',
+          '**/coverage/**',
+          '**/public/**',
         ],
       };
 
-      // Add health check plugin to webpack if enabled
+      // 2. Add health check plugin if enabled
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
       }
-      return webpackConfig;
-    },
-  },
-};
 
-// Only add babel metadata plugin during dev server
-if (config.enableVisualEdits && babelMetadataPlugin) {
-  webpackConfig.babel = {
-    plugins: [babelMetadataPlugin],
-  };
-}
-
-webpackConfig.devServer = (devServerConfig) => {
-  // Apply visual edits dev server setup only if enabled
-  if (config.enableVisualEdits && setupDevServer) {
-    devServerConfig = setupDevServer(devServerConfig);
-  }
-
-  // Add health check endpoints if enabled
-  if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
-    const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
-
-    devServerConfig.setupMiddlewares = (middlewares, devServer) => {
-      // Call original setup if exists
-      if (originalSetupMiddlewares) {
-        middlewares = originalSetupMiddlewares(middlewares, devServer);
-      }
-
-      // Setup health endpoints
-      setupHealthEndpoints(devServer, healthPluginInstance);
-
-      return middlewares;
-    };
-  }
-
-  return devServerConfig;
-};
-
-module.exports = {
-  webpack: {
-    configure: (webpackConfig) => {
-      // Remove o plugin ForkTsCheckerWebpackPlugin que causa conflito com AJV v8
-      const pluginIndex = webpackConfig.plugins.findIndex(
-        (plugin) => plugin.constructor.name === 'ForkTsCheckerWebpackPlugin'
+      // 3. CORREÇÃO CRÍTICA DO AJV (Remover ForkTsCheckerWebpackPlugin)
+      // Removemos o plugin que causa conflito com AJV v8 (erro formatMinimum)
+      webpackConfig.plugins = webpackConfig.plugins.filter(
+        (plugin) => plugin.constructor.name !== 'ForkTsCheckerWebpackPlugin'
       );
 
-      if (pluginIndex !== -1) {
-        webpackConfig.plugins.splice(pluginIndex, 1);
-      }
-
       return webpackConfig;
     },
   },
+  // Configuração do Babel (Visual Edits)
+  babel: config.enableVisualEdits && babelMetadataPlugin ? {
+    plugins: [babelMetadataPlugin],
+  } : {},
+  // Configuração do DevServer
+  devServer: (devServerConfig) => {
+    // Apply visual edits setup
+    if (config.enableVisualEdits && setupDevServer) {
+      devServerConfig = setupDevServer(devServerConfig);
+    }
+
+    // Add health check endpoints
+    if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
+      const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
+      devServerConfig.setupMiddlewares = (middlewares, devServer) => {
+        if (originalSetupMiddlewares) {
+          middlewares = originalSetupMiddlewares(middlewares, devServer);
+        }
+        setupHealthEndpoints(devServer, healthPluginInstance);
+        return middlewares;
+      };
+    }
+    return devServerConfig;
+  }
 };
