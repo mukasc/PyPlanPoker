@@ -103,4 +103,19 @@ webpackConfig.devServer = (devServerConfig) => {
   return devServerConfig;
 };
 
-module.exports = webpackConfig;
+module.exports = {
+  webpack: {
+    configure: (webpackConfig) => {
+      // Remove o plugin ForkTsCheckerWebpackPlugin que causa conflito com AJV v8
+      const pluginIndex = webpackConfig.plugins.findIndex(
+        (plugin) => plugin.constructor.name === 'ForkTsCheckerWebpackPlugin'
+      );
+
+      if (pluginIndex !== -1) {
+        webpackConfig.plugins.splice(pluginIndex, 1);
+      }
+
+      return webpackConfig;
+    },
+  },
+};
