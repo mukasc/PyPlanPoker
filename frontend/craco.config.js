@@ -20,7 +20,7 @@ if (config.enableVisualEdits) {
     setupDevServer = require("./plugins/visual-edits/dev-server-setup");
     babelMetadataPlugin = require("./plugins/visual-edits/babel-metadata-plugin");
   } catch (e) {
-    console.warn("Visual edits plugins not found, skipping...");
+    // console.warn("Visual edits plugins not found, skipping...");
   }
 }
 
@@ -35,7 +35,7 @@ if (config.enableHealthCheck) {
     setupHealthEndpoints = require("./plugins/health-check/health-endpoints");
     healthPluginInstance = new WebpackHealthPlugin();
   } catch (e) {
-    console.warn("Health check plugins not found, skipping...");
+    // console.warn("Health check plugins not found, skipping...");
   }
 }
 
@@ -54,7 +54,7 @@ module.exports = {
       '@': path.resolve(__dirname, 'src'),
     },
     configure: (webpackConfig, { env, paths }) => {
-      // 1. Add ignored patterns
+      // 1. Configura Watch Options (Ignorar pastas pesadas)
       webpackConfig.watchOptions = {
         ...webpackConfig.watchOptions,
         ignored: [
@@ -67,13 +67,13 @@ module.exports = {
         ],
       };
 
-      // 2. Add health check plugin if enabled
+      // 2. Adiciona plugin de Health Check se ativado
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
       }
 
-      // 3. CORREÇÃO CRÍTICA DO AJV (Remover ForkTsCheckerWebpackPlugin)
-      // Removemos o plugin que causa conflito com AJV v8 (erro formatMinimum)
+      // 3. A CORREÇÃO DE OURO: Remover ForkTsCheckerWebpackPlugin
+      // Isso impede que o erro "Unknown keyword formatMinimum" aconteça
       webpackConfig.plugins = webpackConfig.plugins.filter(
         (plugin) => plugin.constructor.name !== 'ForkTsCheckerWebpackPlugin'
       );
