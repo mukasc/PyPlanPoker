@@ -4,13 +4,20 @@ let socket;
 
 export const connectSocket = () => {
   if (!socket) {
-    const baseUrl = window.location.origin;
+    // Se existir variável de ambiente (Prod), usa ela. Se não, usa vazio (o Proxy do Vite resolve no Local)
+    // Nota: O Vercel injeta as variáveis automaticamente no build.
+    const apiUrl = import.meta.env.VITE_API_URL || '';
     
-    // --- MUDANÇA CRUCIAL AQUI ---
-    // Alteramos o path para começar com /api, assim o Proxy deixa passar
-    socket = io(baseUrl, {
-      path: '/api/socket.io/', // <--- AGORA VAI PASSAR PELO PROXY
-      transports: ['polling'],
+    // Se for produção (tem URL completa), usamos o path /socket.io/ normal
+    // Se for dev (vazio), usamos /api/socket.io/ pro proxy pegar
+    const path = apiUrl ? '/socket.io/' : '/api/socket.io/';
+
+    console.log('🔌 Conectando Socket em:', apiUrl || 'Localhost Proxy');
+
+    socket = io(apiUrl, {
+      path: path,
+      transports: ['polling'], // Mantém polling
+      upgrade: true,
       reconnection: true,
       autoConnect: true,
     });

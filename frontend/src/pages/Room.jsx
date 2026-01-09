@@ -12,7 +12,8 @@ import AdminControls from '../components/game/AdminControls';
 import TaskPanel from '../components/game/TaskPanel';
 
 const FIBONACCI = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '?'];
-const API = '/api'; 
+const BASE_URL = import.meta.env.VITE_API_URL || '';
+const API = `${BASE_URL}/api`;
 
 const Room = () => {
   const params = useParams();
