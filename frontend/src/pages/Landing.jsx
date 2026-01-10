@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+// import axios from 'axios'; <--- REMOVIDO
+import api from '../services/api'; // <--- ADICIONADO: O nosso serviço inteligente
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,7 +10,7 @@ import { Toaster, toast } from '../components/ui/sonner';
 import { Users, Plus, LogIn, Eye, Sparkles } from 'lucide-react';
 import useGameStore from '../store/gameStore';
 
-const API = `/api`;
+// const API = `/api`; <--- REMOVIDO (Não precisa mais)
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -31,12 +32,12 @@ const Landing = () => {
 
     setIsLoading(true);
     try {
-      // Create room
-      const roomResponse = await axios.post(`${API}/rooms`, { name: roomName });
+      // Create room (Usando api.post em vez de axios.post)
+      const roomResponse = await api.post('/api/rooms', { name: roomName });
       const newRoom = roomResponse.data;
 
       // Join the room
-      const joinResponse = await axios.post(`${API}/rooms/${newRoom.id}/join`, {
+      const joinResponse = await api.post(`/api/rooms/${newRoom.id}/join`, {
         room_id: newRoom.id,
         name: displayName,
         is_spectator: isSpectator,
@@ -65,7 +66,7 @@ const Landing = () => {
     setIsLoading(true);
     try {
       // Join the room
-      const joinResponse = await axios.post(`${API}/rooms/${roomId.toUpperCase()}/join`, {
+      const joinResponse = await api.post(`/api/rooms/${roomId.toUpperCase()}/join`, {
         room_id: roomId.toUpperCase(),
         name: displayName,
         is_spectator: isSpectator,
@@ -204,6 +205,7 @@ const Landing = () => {
                 <label
                   htmlFor="spectator"
                   className="text-sm text-slate-300 cursor-pointer select-none"
+                  
                 >
                   Join as Observer
                 </label>
