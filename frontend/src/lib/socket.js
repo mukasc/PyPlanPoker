@@ -4,30 +4,34 @@ let socket;
 
 export const connectSocket = () => {
   if (!socket) {
-    // Se existir variável de ambiente (Prod), usa ela. Se não, usa vazio (o Proxy do Vite resolve no Local)
-    // Nota: O Vercel injeta as variáveis automaticamente no build.
+    // 1. URL do Backend (Vercel injeta VITE_API_URL, Local usa vazio)
     const apiUrl = import.meta.env.VITE_API_URL || '';
-    
-    // Se for produção (tem URL completa), usamos o path /socket.io/ normal
-    // Se for dev (vazio), usamos /api/socket.io/ pro proxy pegar
-    const path = apiUrl ? '/socket.io/' : '/api/socket.io/';
 
-    console.log('🔌 Conectando Socket em:', apiUrl || 'Localhost Proxy');
+    // 2. O Path OBRIGATORIAMENTE tem que bater com o 'socketio_path' do server.py
+    // No seu server.py está: socketio_path='/api/socket.io'
+    const socketPath = '/api/socket.io/';
+
+    console.log(`🔌 Tentando conectar Socket em: ${apiUrl || 'Localhost'} (Path: ${socketPath})`);
 
     socket = io(apiUrl, {
-      path: path,
-      transports: ['polling'], // Mantém polling
+      path: socketPath, // Caminho fixo e correto
+      transports: ['polling', 'websocket'], // Adicionei websocket para permitir upgrade (mais rápido)
       upgrade: true,
       reconnection: true,
+      reconnectionAttempts: 10,
       autoConnect: true,
     });
     
     socket.on('connect_error', (err) => {
-      console.log('Socket Error:', err.message);
+      console.error('❌ Socket Error:', err.message);
     });
 
     socket.on('connect', () => {
-      console.log('✅ SOCKET CONECTADO VIA API PATH!');
+      console.log('✅ SOCKET CONECTADO! ID:', socket.id);
+    });
+    
+    socket.on('disconnect', (reason) => {
+      console.log('⚠️ Socket desconectado:', reason);
     });
   }
   
@@ -39,7 +43,10 @@ export const connectSocket = () => {
 };
 
 export const disconnectSocket = () => {
-  if (socket) socket.disconnect();
+  if (socket) {
+    socket.disconnect();
+    socket = null; // Boa prática limpar a variável
+  }
 };
 
 export const getSocket = () => {

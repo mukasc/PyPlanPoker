@@ -278,3 +278,11 @@ async def join_room(sid, data):
 
 fastapi_app.include_router(api_router)
 app = socket_app
+
+# --- INICIALIZAÇÃO PARA RENDER/LOCAL ---
+if __name__ == "__main__":
+    import uvicorn
+    # Pega a porta do ambiente (Render injeta a variável PORT) ou usa 5000 localmente
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"🚀 Iniciando servidor na porta {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
