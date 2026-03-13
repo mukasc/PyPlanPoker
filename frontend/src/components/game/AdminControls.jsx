@@ -3,8 +3,7 @@ import { Button } from '../ui/button';
 
 const AdminControls = ({ 
   onReveal, 
-  onReset, 
-  onShowTasks,
+  onReset,
   cardsRevealed, 
   hasActiveTask,
   allVoted,
@@ -31,17 +30,6 @@ const AdminControls = ({
           </span>
         </div>
       )}
-
-      {/* Task List Button */}
-      <Button
-        data-testid="show-tasks-btn"
-        variant="ghost"
-        onClick={onShowTasks}
-        className="text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-      >
-        <ListTodo className="w-4 h-4 mr-2" />
-        Tasks
-      </Button>
 
       {/* Reveal Button */}
       {hasActiveTask && !cardsRevealed && (

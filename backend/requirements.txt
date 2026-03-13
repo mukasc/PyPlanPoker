@@ -11,3 +11,5 @@ motor
 python-dotenv
 pydantic
 dnspython
+google-auth
+requests

@@ -11,5 +11,16 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      "Cross-Origin-Embedder-Policy": "unsafe-none"
+    },
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        ws: true
+      }
+    }
   }
 })

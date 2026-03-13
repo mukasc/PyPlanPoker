@@ -79,13 +79,33 @@ const TaskPanel = ({
               </p>
             )}
             
-            {/* Status Badges */}
             {isCompleted && task.final_score && (
               <div className="mt-2">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-900/30 text-emerald-400 border border-emerald-800 rounded text-xs font-mono">
-                  <Check className="w-3 h-3" />
-                  Score: {task.final_score}
-                </span>
+                <div className="relative inline-block group/tooltip">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-900/30 text-emerald-400 border border-emerald-800 rounded text-xs font-mono cursor-help">
+                    <Check className="w-3 h-3" />
+                    Score: {task.final_score}
+                  </span>
+                  
+                  {/* Vote History Tooltip */}
+                  {task.votes_summary && task.votes_summary.length > 0 && (
+                    <div className="absolute bottom-full mb-2 left-0 w-max max-w-xs bg-slate-900 border border-slate-700 p-2 rounded shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-1 border-b border-slate-800 pb-1">
+                        Individual Votes
+                      </p>
+                      <div className="space-y-1">
+                        {task.votes_summary.map((v, i) => (
+                          <div key={i} className="flex justify-between gap-4 text-xs font-mono">
+                            <span className="text-slate-400 truncate max-w-[100px]">{v.name}:</span>
+                            <span className="text-indigo-400 font-bold">{v.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Triangle Arrow */}
+                      <div className="absolute top-full left-4 border-8 border-transparent border-t-slate-700"></div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {isCancelled && (
@@ -282,38 +302,40 @@ const TaskPanel = ({
           )}
         </div>
 
-        {/* Footer: Add Form */}
-        <div className="border-t border-slate-800 p-4 bg-slate-900/50">
-          {showAddForm ? (
-            <div className="space-y-3 bg-slate-900 p-3 rounded-lg border border-slate-800 animate-in zoom-in-95">
-              <Input
-                placeholder="Task title (e.g. USER-101 Login)"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                className="bg-slate-950 border-slate-700 text-slate-200"
-                autoFocus
-              />
-              <Input
-                placeholder="Description (optional)"
-                value={newTaskDesc}
-                onChange={(e) => setNewTaskDesc(e.target.value)}
-                className="bg-slate-950 border-slate-700 text-slate-200"
-              />
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)} className="flex-1 text-slate-400">Cancel</Button>
-                <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white">Add Task</Button>
+        {/* Footer: Add Form (Apenas Admin) */}
+        {isAdmin && (
+          <div className="border-t border-slate-800 p-4 bg-slate-900/50">
+            {showAddForm ? (
+              <div className="space-y-3 bg-slate-900 p-3 rounded-lg border border-slate-800 animate-in zoom-in-95">
+                <Input
+                  placeholder="Task title (e.g. USER-101 Login)"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="bg-slate-950 border-slate-700 text-slate-200"
+                  autoFocus
+                />
+                <Input
+                  placeholder="Description (optional)"
+                  value={newTaskDesc}
+                  onChange={(e) => setNewTaskDesc(e.target.value)}
+                  className="bg-slate-950 border-slate-700 text-slate-200"
+                />
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setShowAddForm(false)} className="flex-1 text-slate-400">Cancel</Button>
+                  <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white">Add Task</Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <Button
-              onClick={() => setShowAddForm(true)}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Task
-            </Button>
-          )}
-        </div>
+            ) : (
+              <Button
+                onClick={() => setShowAddForm(true)}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add New Task
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

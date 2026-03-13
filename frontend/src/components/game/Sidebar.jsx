@@ -10,6 +10,8 @@ const Sidebar = ({
   votes, 
   cardsRevealed,
   onLeave,
+  onKick,
+  isAdmin,
   isConnected 
 }) => {
   const copyRoomId = () => {
@@ -111,6 +113,19 @@ const Sidebar = ({
                     </div>
                   </div>
                   
+                  {/* Botao Remover (Apenas Admin) */}
+                  {!isCurrentUser && isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="w-8 h-8 text-slate-500 hover:text-rose-400 hover:bg-rose-900/20 mr-1"
+                      onClick={() => onKick(user.id)}
+                      title="Remove User"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  )}
+                  
                   {/* Vote Status */}
                   <div className="flex-shrink-0">
                     {cardsRevealed && voteValue !== null ? (
@@ -156,10 +171,22 @@ const Sidebar = ({
                     <div className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center text-xs font-medium text-slate-400">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm text-slate-400 truncate">
+                    <span className="text-sm text-slate-400 truncate flex-1">
                       {user.name}
                       {isCurrentUser && <span className="text-slate-500 ml-1">(you)</span>}
                     </span>
+                    
+                    {!isCurrentUser && isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-8 h-8 text-slate-500 hover:text-rose-400 hover:bg-rose-900/20"
+                        onClick={() => onKick(user.id)}
+                        title="Remove Spectator"
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}

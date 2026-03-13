@@ -51,6 +51,10 @@ __pycache__/
 *pyc*
 venv/
 .venv/
+backend/Include/
+backend/Lib/
+backend/Scripts/
+backend/pyvenv.cfg
 
 # Development tools
 chainlit.md

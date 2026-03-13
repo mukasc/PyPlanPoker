@@ -4,6 +4,8 @@ import axios from 'axios';
 import useGameStore from '../store/gameStore';
 import { connectSocket, disconnectSocket } from '../lib/socket';
 import { Toaster, toast } from '../components/ui/sonner';
+import { Button } from '../components/ui/button';
+import { ListTodo } from 'lucide-react';
 
 import Sidebar from '../components/game/Sidebar';
 import PokerTable from '../components/game/PokerTable';
@@ -52,10 +54,10 @@ const Room = () => {
 
     // Se as cartas foram escondidas (reset), limpa a seleção
     // (A menos que eu ainda não tenha votado, mas aqui simplificamos limpando)
-    if (!isRevealed && selectedCard && !roomState.votes.find(v => v.user_id === user.id)) {
+    if (!isRevealed && selectedCard && user && !roomState.votes.find(v => v.user_id === user.id)) {
        setSelectedCard(null);
     }
-  }, [roomState, selectedCard, setSelectedCard, user.id]);
+  }, [roomState, selectedCard, setSelectedCard, user?.id]);
 
   // Função centralizada para buscar estado
   const fetchState = useCallback(async () => {
@@ -69,17 +71,9 @@ const Room = () => {
     }
   }, [setRoomState]);
 
-  // --- 1. BUSCA INICIAL E POLLING (REDE DE SEGURANÇA) ---
-  // Isso garante que o jogo funcione mesmo sem socket!
+  // --- 1. BUSCA INICIAL DE SEGURANÇA ---
   useEffect(() => {
-    fetchState(); // Busca imediata
-
-    // Atualiza a cada 2 segundos (Polling)
-    const interval = setInterval(() => {
-      fetchState();
-    }, 2000);
-
-    return () => clearInterval(interval);
+    fetchState(); // Busca imediata apenas na primeira montagem
   }, [fetchState]);
 
   // --- 2. CONEXÃO SOCKET (REAL-TIME OTIMIZADO) ---
@@ -106,6 +100,15 @@ const Room = () => {
       toast.success('Cards revealed!');
     });
 
+    
+    socket.on('kicked', (data) => {
+      // Se eu sou o alvo do chute, eu me desconecto da sala
+      if (data.target_user_id === user.id) {
+        toast.error('Você foi removido pelo criador da sala.');
+        handleLeaveRoom();
+      }
+    });
+
     if (socket.connected) { setIsConnected(true); joinRoom(); }
 
     return () => {
@@ -113,6 +116,7 @@ const Room = () => {
       socket.off('disconnect');
       socket.off('state_update');
       socket.off('reveal_votes');
+      socket.off('kicked');
     };
   }, [user, roomId, setRoomState, setIsConnected]);
 
@@ -176,6 +180,10 @@ const Room = () => {
     handleAction('cancel-task', { task_id: taskId }, 'Task cancelled');
   }, [roomId, user]);
 
+  const handleKickUser = useCallback((targetUserId) => {
+    handleAction('kick', { target_user_id: targetUserId }, 'User removed');
+  }, [roomId, user]);
+
   if (!user || !room) return null;
 
   const cardsRevealed = roomState.room?.cards_revealed || false;
@@ -196,22 +204,37 @@ const Room = () => {
           votes={roomState.votes}
           cardsRevealed={cardsRevealed}
           onLeave={handleLeaveRoom}
+          onKick={handleKickUser}
+          isAdmin={user.is_admin}
           isConnected={isConnected}
         />
         <main className="col-span-1 lg:col-span-9 flex flex-col h-full overflow-hidden">
           <header className="flex-shrink-0 p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-200 font-mono">
-                  {activeTask ? activeTask.title : 'No Active Task'}
-                </h2>
-                {activeTask?.description && <p className="text-sm text-slate-400 mt-1 max-w-xl truncate">{activeTask.description}</p>}
+              <div className="flex items-center gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-200 font-mono flex items-center gap-2">
+                    {activeTask ? activeTask.title : 'No Active Task'}
+                  </h2>
+                  {activeTask?.description && <p className="text-sm text-slate-400 mt-1 max-w-xl truncate">{activeTask.description}</p>}
+                </div>
+                
+                {/* Task List Button (Visible to everyone) */}
+                <Button
+                  data-testid="show-tasks-btn"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTaskPanel(true)}
+                  className="bg-slate-800/50 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 ml-2"
+                >
+                  <ListTodo className="w-4 h-4 mr-2 text-indigo-400" />
+                  View Tasks
+                </Button>
               </div>
               {user.is_admin && (
                 <AdminControls
                   onReveal={handleRevealCards}
                   onReset={handleResetVotes}
-                  onShowTasks={() => setShowTaskPanel(true)}
                   cardsRevealed={cardsRevealed}
                   hasActiveTask={!!activeTask}
                   allVoted={allVoted}
