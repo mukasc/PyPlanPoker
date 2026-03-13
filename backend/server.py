@@ -70,6 +70,7 @@ class ActionComplete(ActionBase): task_id: str; final_score: str
 class ActionDelete(ActionBase): task_id: str
 class ActionKick(ActionBase): target_user_id: str
 class ActionTimer(ActionBase): duration_seconds: int
+class ActionReorder(ActionBase): task_ids: List[str]
 
 class Room(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -103,6 +104,7 @@ class Task(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     final_score: Optional[str] = None
     votes_summary: List[Dict[str, Any]] = []
+    position: int = 0
 
 def get_deck_values(deck_type: str, custom_deck: Optional[str] = None) -> List[str]:
     if deck_type == "T_SHIRT":
@@ -138,7 +140,7 @@ async def get_room_state(room_id: str, include_votes: bool = False) -> Dict[str,
     if not room: return {}
     
     users = await db.users.find({"room_id": room_id, "is_online": {"$ne": False}}, {"_id": 0}).to_list(100)
-    tasks = await db.tasks.find({"room_id": room_id}, {"_id": 0}).to_list(100)
+    tasks = await db.tasks.find({"room_id": room_id}, {"_id": 0}).sort("position", 1).to_list(100)
     
     active_task = None
     if room.get("active_task_id"):
@@ -276,14 +278,18 @@ async def get_state_http(room_id: str):
 @api_router.post("/tasks", response_model=Task)
 async def create_task(input: TaskCreate):
     input.room_id = input.room_id.upper()
-    task = Task(room_id=input.room_id, title=input.title, description=input.description or "")
+    # Get current max position
+    last_task = await db.tasks.find_one({"room_id": input.room_id}, sort=[("position", -1)])
+    next_position = (last_task.get("position", 0) + 1) if last_task else 0
+    
+    task = Task(room_id=input.room_id, title=input.title, description=input.description or "", position=next_position)
     await db.tasks.insert_one(task.model_dump())
     await broadcast_room_state(input.room_id)
     return task
 
 @api_router.get("/rooms/{room_id}/tasks")
 async def get_tasks(room_id: str):
-    return await db.tasks.find({"room_id": room_id.upper()}, {"_id": 0}).to_list(100)
+    return await db.tasks.find({"room_id": room_id.upper()}, {"_id": 0}).sort("position", 1).to_list(100)
 
 @api_router.get("/fibonacci")
 async def get_fibonacci(): return {"values": FIBONACCI_VALUES}
@@ -295,7 +301,14 @@ async def set_active_task_http(action: ActionActiveTask):
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     await db.tasks.update_many({"room_id": action.room_id, "status": TaskStatus.ACTIVE}, {"$set": {"status": TaskStatus.PENDING}})
-    await db.tasks.update_one({"id": action.task_id}, {"$set": {"status": TaskStatus.ACTIVE}})
+    await db.tasks.update_one(
+        {"id": action.task_id}, 
+        {"$set": {
+            "status": TaskStatus.ACTIVE,
+            "final_score": None,
+            "votes_summary": []
+        }}
+    )
     await db.rooms.update_one({"id": action.room_id}, {"$set": {"active_task_id": action.task_id, "cards_revealed": False}})
     await db.votes.delete_many({"task_id": action.task_id})
     await broadcast_room_state(action.room_id)
@@ -424,6 +437,21 @@ async def stop_timer_http(action: ActionBase):
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     await db.rooms.update_one({"id": action.room_id}, {"$set": {"timer_end": None}})
+    await broadcast_room_state(action.room_id)
+    return {"status": "success"}
+
+@api_router.post("/reorder-tasks")
+async def reorder_tasks_http(action: ActionReorder):
+    user = await db.users.find_one({"id": action.user_id})
+    if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
+    
+    # Update position for each task
+    for index, task_id in enumerate(action.task_ids):
+        await db.tasks.update_one(
+            {"id": task_id, "room_id": action.room_id},
+            {"$set": {"position": index}}
+        )
+    
     await broadcast_room_state(action.room_id)
     return {"status": "success"}
 

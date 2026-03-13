@@ -214,6 +214,10 @@ const Room = () => {
     handleAction('cancel-task', { task_id: taskId }, 'Task cancelled');
   }, [roomId, user]);
 
+  const handleReorderTasks = useCallback((taskIds) => {
+    handleAction('reorder-tasks', { task_ids: taskIds }, null);
+  }, [roomId, user]);
+
   const handleKickUser = useCallback((targetUserId) => {
     handleAction('kick', { target_user_id: targetUserId }, 'User removed');
   }, [roomId, user]);
@@ -267,7 +271,6 @@ const Room = () => {
                   <ListTodo className="w-4 h-4 mr-2 text-indigo-400" />
                   View Tasks
                 </Button>
-
                 <Button
                   variant="ghost"
                   size="icon"
@@ -322,7 +325,8 @@ const Room = () => {
           activeTaskId={activeTask?.id}
           onSetActive={handleSetActiveTask}
           onComplete={handleCompleteTask}
-          onCancel={handleCancelTask} // <--- PASSE A NOVA PROP AQUI
+          onCancel={handleCancelTask}
+          onReorder={handleReorderTasks}
           onAdd={handleAddTask}
           onDelete={handleDeleteTask}
           onClose={() => setShowTaskPanel(false)}
