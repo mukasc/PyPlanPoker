@@ -14,7 +14,7 @@ const TaskPanel = ({
   onDelete,
   onClose, 
   isAdmin,
-  fibonacci 
+  deckValues 
 }) => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
@@ -180,7 +180,7 @@ const TaskPanel = ({
           <div className="mt-4 pt-4 border-t border-slate-700 animate-in slide-in-from-top-2">
             <p className="text-sm text-slate-400 mb-3 font-semibold">Select final team score:</p>
             <div className="flex flex-wrap gap-2 mb-3">
-              {fibonacci.map((val) => (
+              {deckValues.map((val) => (
                 <button
                   key={String(val)}
                   onClick={() => setSelectedScore(String(val))}

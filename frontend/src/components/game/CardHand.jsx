@@ -1,6 +1,8 @@
 import { cn } from '../../lib/utils';
+import useSound from '../../hooks/useSound';
 
 const CardHand = ({ cards, selectedCard, onSelect, disabled }) => {
+  const { playSound, SOUNDS } = useSound();
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-center gap-1 md:gap-2 flex-wrap">
@@ -12,7 +14,12 @@ const CardHand = ({ cards, selectedCard, onSelect, disabled }) => {
             <button
               key={cardValue}
               data-testid={`vote-card-${cardValue}`}
-              onClick={() => !disabled && onSelect(card)}
+              onClick={() => {
+                if (!disabled) {
+                  onSelect(card);
+                  playSound(SOUNDS.VOTE);
+                }
+              }}
               disabled={disabled}
               className={cn(
                 "w-12 h-18 md:w-16 md:h-24 rounded-lg font-mono font-bold text-xl md:text-2xl",

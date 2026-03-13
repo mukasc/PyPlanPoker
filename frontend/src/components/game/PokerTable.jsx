@@ -1,8 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { cn } from '../../lib/utils';
 import PokerCard from './PokerCard';
+import useSound from '../../hooks/useSound';
 
-const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask }) => {
+const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, timerEnd }) => {
+  const { playSound, SOUNDS } = useSound();
+  const [revealedUserIds, setRevealedUserIds] = useState(new Set());
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [hasPlayedEndSound, setHasPlayedEndSound] = useState(false);
+  
   // Only show voters (not spectators) on the table
   const voters = useMemo(() => users.filter(u => !u.is_spectator), [users]);
 
@@ -51,6 +59,11 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask }) 
       .filter(([_, count]) => count === maxCount)
       .map(([value]) => value);
     
+    // Absolute consensus: Everyone voted the same value
+    const isAbsoluteConsensus = numericVotes.length === voters.length && 
+                                consensus.length === 1 && 
+                                maxCount === voters.length;
+
     return {
       average: avg.toFixed(1),
       min,
@@ -58,8 +71,106 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask }) 
       spread: max - min,
       consensus: consensus.length === 1 ? consensus[0] : null,
       totalVotes: votes.length,
+      isAbsoluteConsensus
     };
-  }, [votes, cardsRevealed]);
+  }, [votes, cardsRevealed, voters.length]);
+
+  // Trigger celebration
+  useEffect(() => {
+    if (cardsRevealed && voteStats?.isAbsoluteConsensus) {
+      playSound(SOUNDS.SUCCESS);
+      // Fire confetti from both sides
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // since particles fall down, start a bit higher than random
+        confetti({ 
+          ...defaults, 
+          particleCount, 
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: ['#10b981', '#6366f1', '#ffffff']
+        });
+        confetti({ 
+          ...defaults, 
+          particleCount, 
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: ['#10b981', '#6366f1', '#ffffff']
+        });
+      }, 250);
+    }
+  }, [cardsRevealed, voteStats?.isAbsoluteConsensus, playSound]);
+
+  // Staggered reveal logic
+  useEffect(() => {
+    if (cardsRevealed) {
+      // Find all users who voted
+      const userIdsToReveal = voters
+        .filter(u => votes.some(v => v.user_id === u.id))
+        .map(u => u.id);
+
+      let currentRevealIndex = 0;
+      const revealDelay = 300; // ms between each card
+
+      const interval = setInterval(() => {
+        if (currentRevealIndex >= userIdsToReveal.length) {
+          clearInterval(interval);
+          return;
+        }
+
+        const nextId = userIdsToReveal[currentRevealIndex];
+        setRevealedUserIds(prev => new Set([...prev, nextId]));
+        currentRevealIndex++;
+      }, revealDelay);
+
+      return () => clearInterval(interval);
+    } else {
+      // Reset when cards are hidden
+      setRevealedUserIds(new Set());
+    }
+  }, [cardsRevealed, voters, votes]);
+
+  // Timer Ticker Logic
+  useEffect(() => {
+    if (!timerEnd) {
+      setTimeLeft(null);
+      setHasPlayedEndSound(false);
+      return;
+    }
+
+    const targetDate = new Date(timerEnd).getTime();
+    
+    const updateTimer = () => {
+      const now = Date.now();
+      const difference = Math.max(0, Math.floor((targetDate - now) / 1000));
+      setTimeLeft(difference);
+
+      if (difference === 0 && !hasPlayedEndSound) {
+        playSound(SOUNDS.TIMER_END);
+        setHasPlayedEndSound(true);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [timerEnd, playSound, SOUNDS.TIMER_END, hasPlayedEndSound]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   if (!activeTask) {
     return (
@@ -80,7 +191,10 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask }) 
   return (
     <div className="relative w-full max-w-4xl aspect-[16/10]">
       {/* Table Background */}
-      <div className="absolute inset-8 md:inset-12 bg-slate-900/80 rounded-[3rem] border-4 border-slate-700/50 shadow-2xl shadow-black/50">
+      <div className={cn(
+        "absolute inset-8 md:inset-12 bg-slate-900/80 rounded-[3rem] border-4 border-slate-700/50 shadow-2xl shadow-black/50 transition-all duration-1000",
+        cardsRevealed && voteStats?.isAbsoluteConsensus && "consensus-glow"
+      )}>
         {/* Inner felt */}
         <div className="absolute inset-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-[2rem] border border-slate-700/30" />
         
@@ -120,9 +234,19 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask }) 
             </div>
           ) : (
             <div className="text-center">
-              <div className="text-slate-500 text-sm">
-                {votes.length === 0 ? 'Waiting for votes...' : `${votes.length}/${voters.length} voted`}
-              </div>
+              {timeLeft !== null ? (
+                <div className={`flex flex-col items-center justify-center animate-in zoom-in duration-300 ${timeLeft <= 10 ? 'text-rose-500 animate-pulse' : 'text-indigo-400'}`}>
+                   <div className="text-6xl md:text-7xl font-bold font-mono">
+                    {formatTime(timeLeft)}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest opacity-60 mt-1">Discussion Time</div>
+                  {timeLeft === 0 && <div className="text-xl font-bold mt-2 animate-bounce">TIME UP!</div>}
+                </div>
+              ) : (
+                <div className="text-slate-500 text-sm">
+                  {votes.length === 0 ? 'Waiting for votes...' : `${votes.length}/${voters.length} voted`}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -144,7 +268,7 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask }) 
             {/* Card */}
             <PokerCard
               value={vote?.value}
-              faceUp={cardsRevealed && hasVoted}
+              faceUp={revealedUserIds.has(user.id)}
               hasVoted={hasVoted}
               isCurrentUser={isCurrentUser}
             />

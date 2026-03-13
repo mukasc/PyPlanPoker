@@ -5,6 +5,7 @@ import api from '../services/api'; // <--- ADICIONADO: O nosso serviço intelige
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Checkbox } from '../components/ui/checkbox';
 import { Toaster, toast } from '../components/ui/sonner';
 import { Users, Plus, LogIn, Eye, Sparkles, LogOut, List, Clock, ArrowRight } from 'lucide-react';
@@ -21,6 +22,8 @@ const Landing = () => {
   const [roomName, setRoomName] = useState('');
   const [displayName, setDisplayName] = useState(globalUser?.name || '');
   const [isSpectator, setIsSpectator] = useState(false);
+  const [deckType, setDeckType] = useState('FIBONACCI');
+  const [customDeck, setCustomDeck] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userRooms, setUserRooms] = useState([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
@@ -55,7 +58,9 @@ const Landing = () => {
       // Create room
       const roomResponse = await api.post('/api/rooms', { 
         name: roomName,
-        owner_id: globalUser?.id 
+        owner_id: globalUser?.id,
+        deck_type: deckType,
+        custom_deck: deckType === 'CUSTOM' ? customDeck : ''
       });
       const newRoom = roomResponse.data;
 
@@ -308,30 +313,61 @@ const Landing = () => {
                     />
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Room Name</label>
-                    <Input
-                      data-testid="room-name-input"
-                      type="text"
-                      placeholder="e.g., Sprint 42 Planning"
-                      value={roomName}
-                      onChange={(e) => setRoomName(e.target.value)}
-                      className="bg-slate-950 border-slate-800 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-indigo-500"
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-300">Room Name</label>
+                      <Input
+                        data-testid="room-name-input"
+                        type="text"
+                        placeholder="e.g., Sprint 42 Planning"
+                        value={roomName}
+                        onChange={(e) => setRoomName(e.target.value)}
+                        className="bg-slate-950 border-slate-800 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-indigo-500"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-300">Deck Type</label>
+                      <Select value={deckType} onValueChange={setDeckType}>
+                        <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-200 focus:ring-indigo-500">
+                          <SelectValue placeholder="Select deck type" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                          <SelectItem value="FIBONACCI">Fibonacci (0, 1, 2, 3, 5, 8...)</SelectItem>
+                          <SelectItem value="T_SHIRT">T-Shirt Size (XS, S, M, L...)</SelectItem>
+                          <SelectItem value="SEQUENTIAL">Sequential (0, 1, 2, 3...)</SelectItem>
+                          <SelectItem value="CUSTOM">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {deckType === 'CUSTOM' && (
+                      <div className="space-y-2 animate-in slide-in-from-top-2">
+                        <label className="text-sm font-medium text-slate-300">Custom Deck Values</label>
+                        <Input
+                          type="text"
+                          placeholder="e.g., 1, 10, 100, ?"
+                          value={customDeck}
+                          onChange={(e) => setCustomDeck(e.target.value)}
+                          className="bg-slate-950 border-slate-800 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        <p className="text-xs text-slate-500">Comma-separated values</p>
+                      </div>
+                    )}
+                  </>
                 )}
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Your Display Name</label>
-                  <Input
-                    data-testid="display-name-input"
-                    type="text"
-                    placeholder="Enter your name"
-                    value={displayName}
-                    readOnly
-                    className="bg-slate-900/50 border-slate-800 text-slate-400 cursor-not-allowed focus:border-slate-800 focus:ring-0 select-none"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300">Your Display Name</label>
+                    <Input
+                      data-testid="display-name-input"
+                      type="text"
+                      placeholder="Enter your name"
+                      value={displayName}
+                      readOnly
+                      className="bg-slate-900/50 border-slate-800 text-slate-400 cursor-not-allowed focus:border-slate-800 focus:ring-0 select-none"
+                    />
+                  </div>
 
                 <div className="flex items-center space-x-3 py-2 px-3 bg-slate-950/50 rounded-lg border border-slate-800">
                   <Checkbox
@@ -380,7 +416,7 @@ const Landing = () => {
 
       {/* Footer */}
       <p className="mt-8 text-slate-500 text-sm relative z-10">
-        Fibonacci voting for agile estimation
+        Flexible voting for agile estimation
       </p>
     </div>
   );

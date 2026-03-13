@@ -1,5 +1,6 @@
-import { Eye, RotateCcw, ListTodo } from 'lucide-react';
+import { Eye, RotateCcw, ListTodo, Hourglass } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useState } from 'react';
 
 const AdminControls = ({ 
   onReveal, 
@@ -8,10 +9,23 @@ const AdminControls = ({
   hasActiveTask,
   allVoted,
   votedCount,
-  totalVoters 
+  totalVoters,
+  onStartTimer,
+  onStopTimer,
+  timerEnd
 }) => {
   return (
     <div className="flex items-center gap-3">
+      {/* Timer Controls */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={timerEnd ? onStopTimer : () => onStartTimer(120)}
+        className={`${timerEnd ? 'border-rose-500/50 text-rose-400 bg-rose-500/10' : 'border-slate-700 text-slate-400'} h-9`}
+      >
+        <Hourglass className={`w-4 h-4 mr-2 ${timerEnd ? 'animate-spin' : ''}`} />
+        {timerEnd ? 'Stop Timer' : 'Timer 2m'}
+      </Button>
       {/* Vote Progress */}
       {hasActiveTask && !cardsRevealed && (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-lg border border-slate-700">

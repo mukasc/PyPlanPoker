@@ -20,6 +20,7 @@ const useGameStore = create(
       // Local UI state
       selectedCard: null,
       isConnected: false,
+      isMuted: false,
       
       // Actions
       setUser: (user) => set({ user }),
@@ -27,6 +28,7 @@ const useGameStore = create(
       setRoomState: (roomState) => set({ roomState }),
       setSelectedCard: (card) => set({ selectedCard: card }),
       setIsConnected: (isConnected) => set({ isConnected }),
+      toggleMuted: () => set((state) => ({ isMuted: !state.isMuted })),
       
       // Reset on disconnect
       resetGame: () => set({
@@ -76,6 +78,7 @@ const useGameStore = create(
       partialize: (state) => ({
         user: state.user,
         room: state.room,
+        isMuted: state.isMuted,
       }),
     }
   )

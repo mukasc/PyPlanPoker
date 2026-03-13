@@ -5,7 +5,8 @@ import useGameStore from '../store/gameStore';
 import { connectSocket, disconnectSocket } from '../lib/socket';
 import { Toaster, toast } from '../components/ui/sonner';
 import { Button } from '../components/ui/button';
-import { ListTodo } from 'lucide-react';
+import { ListTodo, Volume2, VolumeX } from 'lucide-react';
+import useSound from '../hooks/useSound';
 
 import Sidebar from '../components/game/Sidebar';
 import PokerTable from '../components/game/PokerTable';
@@ -24,8 +25,40 @@ const Room = () => {
   
   const { 
     user, room, roomState, setRoomState, 
-    selectedCard, setSelectedCard, setIsConnected, leaveRoom, isConnected 
+    selectedCard, setSelectedCard, setIsConnected, leaveRoom, isConnected,
+    isMuted, toggleMuted
   } = useGameStore();
+
+  const handleStartTimer = async (duration) => {
+    try {
+      await axios.post(`${API}/start-timer`, {
+        room_id: room.id,
+        user_id: user.id,
+        duration_seconds: duration
+      });
+    } catch (error) {
+      toast.error('Failed to start timer');
+    }
+  };
+
+  const handleStopTimer = async () => {
+    try {
+      await axios.post(`${API}/stop-timer`, {
+        room_id: room.id,
+        user_id: user.id
+      });
+    } catch (error) {
+      toast.error('Failed to stop timer');
+    }
+  };
+
+  const handleToggleMute = useCallback(() => {
+    toggleMuted();
+    const isNowMuted = !isMuted;
+    toast.info(isNowMuted ? 'Volume: OFF' : 'Volume: ON', { duration: 1000 });
+  }, [toggleMuted, isMuted]);
+
+  const { playSound, SOUNDS } = useSound();
 
   const [showTaskPanel, setShowTaskPanel] = useState(false);
   
@@ -97,6 +130,7 @@ const Room = () => {
     
     socket.on('reveal_votes', (state) => {
       setRoomState(state);
+      playSound(SOUNDS.REVEAL);
       toast.success('Cards revealed!');
     });
 
@@ -192,6 +226,9 @@ const Room = () => {
   const votedCount = roomState.votes.length;
   const allVoted = voters.length > 0 && votedCount >= voters.length;
 
+  // Utilize the dynamic deck values or fallback to FIBONACCI
+  const currentDeck = roomState.room?.deck_values || room.deck_values || FIBONACCI;
+
   return (
     <div className="h-screen bg-slate-950 overflow-hidden">
       <Toaster position="top-center" theme="dark" />
@@ -230,16 +267,28 @@ const Room = () => {
                   <ListTodo className="w-4 h-4 mr-2 text-indigo-400" />
                   View Tasks
                 </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleToggleMute}
+                  className="text-slate-400 hover:text-white"
+                >
+                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </Button>
               </div>
               {user.is_admin && (
                 <AdminControls
                   onReveal={handleRevealCards}
                   onReset={handleResetVotes}
-                  cardsRevealed={cardsRevealed}
-                  hasActiveTask={!!activeTask}
-                  allVoted={allVoted}
-                  votedCount={votedCount}
+                  cardsRevealed={roomState.room?.cards_revealed}
+                  hasActiveTask={!!roomState.active_task}
+                  votedCount={roomState.votes.length}
                   totalVoters={voters.length}
+                  allVoted={voters.length > 0 && roomState.votes.length === voters.length}
+                  onStartTimer={handleStartTimer}
+                  onStopTimer={handleStopTimer}
+                  timerEnd={roomState.room?.timer_end}
                 />
               )}
             </div>
@@ -250,13 +299,14 @@ const Room = () => {
               votes={roomState.votes}
               cardsRevealed={cardsRevealed}
               currentUserId={user.id}
-              activeTask={activeTask}
+              activeTask={roomState.active_task}
+              timerEnd={roomState.room?.timer_end}
             />
           </div>
           {!user.is_spectator && (
             <div className="flex-shrink-0 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm">
               <CardHand
-                cards={FIBONACCI}
+                cards={currentDeck}
                 selectedCard={selectedCard}
                 onSelect={handleVote}
                 disabled={cardsRevealed || !activeTask}
@@ -277,7 +327,7 @@ const Room = () => {
           onDelete={handleDeleteTask}
           onClose={() => setShowTaskPanel(false)}
           isAdmin={user.is_admin}
-          fibonacci={FIBONACCI}
+          deckValues={currentDeck}
         />
       )}
     </div>

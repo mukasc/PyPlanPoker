@@ -44,7 +44,12 @@ class TaskStatus(str, Enum):
     CANCELLED = "CANCELLED" # <--- Novo
 
 # --- MODELOS COM VALIDAÇÃO DE UPPERCASE ---
-class RoomCreate(BaseModel): name: str; owner_id: Optional[str] = None
+class RoomCreate(BaseModel):
+    name: str
+    owner_id: Optional[str] = None
+    deck_type: str = "FIBONACCI"
+    custom_deck: Optional[str] = None
+
 class UserJoin(BaseModel): room_id: str; name: str; user_id: Optional[str] = None; picture: Optional[str] = None; is_spectator: bool = False
 class TaskCreate(BaseModel): room_id: str; title: str; description: Optional[str] = ""
 
@@ -64,6 +69,7 @@ class ActionReset(ActionBase): task_id: Optional[str] = None
 class ActionComplete(ActionBase): task_id: str; final_score: str
 class ActionDelete(ActionBase): task_id: str
 class ActionKick(ActionBase): target_user_id: str
+class ActionTimer(ActionBase): duration_seconds: int
 
 class Room(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -73,6 +79,9 @@ class Room(BaseModel):
     owner_id: Optional[str] = None
     cards_revealed: bool = False
     active_task_id: Optional[str] = None
+    deck_type: str = "FIBONACCI"
+    deck_values: List[str] = [str(v) for v in FIBONACCI_VALUES]
+    timer_end: Optional[str] = None
 
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -94,6 +103,16 @@ class Task(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     final_score: Optional[str] = None
     votes_summary: List[Dict[str, Any]] = []
+
+def get_deck_values(deck_type: str, custom_deck: Optional[str] = None) -> List[str]:
+    if deck_type == "T_SHIRT":
+        return ["XS", "S", "M", "L", "XL", "XXL", "?"]
+    elif deck_type == "SEQUENTIAL":
+        return ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "?"]
+    elif deck_type == "CUSTOM" and custom_deck:
+        return [v.strip() for v in custom_deck.split(",") if v.strip()]
+    return [str(v) for v in FIBONACCI_VALUES]
+
 
 class Vote(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -131,6 +150,11 @@ async def get_room_state(room_id: str, include_votes: bool = False) -> Dict[str,
         votes = raw_votes if (room.get("cards_revealed") or include_votes) else [{"user_id": v["user_id"], "has_voted": True} for v in raw_votes]
         voted_ids = {v["user_id"] for v in raw_votes}
         for user in users: user["has_voted"] = user["id"] in voted_ids
+    
+    # Defensive defaults for deck
+    if "deck_type" not in room: room["deck_type"] = "FIBONACCI"
+    if "deck_values" not in room: room["deck_values"] = [str(v) for v in FIBONACCI_VALUES]
+    if "timer_end" not in room: room["timer_end"] = None
     
     return {"room": room, "users": users, "tasks": tasks, "votes": votes, "active_task": active_task}
 
@@ -185,7 +209,14 @@ async def auth_google(input: AuthGoogle):
 
 @api_router.post("/rooms", response_model=Room)
 async def create_room(input: RoomCreate):
-    room = Room(name=input.name, owner_id=input.owner_id)
+    values = get_deck_values(input.deck_type, input.custom_deck)
+    logger.info(f"🆕 Criando sala: {input.name} | Deck: {input.deck_type} | Valores: {values}")
+    room = Room(
+        name=input.name, 
+        owner_id=input.owner_id,
+        deck_type=input.deck_type,
+        deck_values=values
+    )
     await db.rooms.insert_one(room.model_dump())
     return room
 
@@ -194,6 +225,10 @@ async def join_room_http(room_id: str, input: UserJoin):
     room_id = room_id.upper()
     room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
     if not room: raise HTTPException(404, "Room not found")
+    
+    # Defensive defaults for deck
+    if "deck_type" not in room: room["deck_type"] = "FIBONACCI"
+    if "deck_values" not in room: room["deck_values"] = [str(v) for v in FIBONACCI_VALUES]
     
     # Check if this user is the owner
     is_owner = input.user_id and room.get("owner_id") == input.user_id
@@ -367,6 +402,28 @@ async def kick_user_http(action: ActionKick):
     # Emite evento especifico para a sala inteira (quem for o target vai se auto-remover no frontend)
     await sio.emit('kicked', {"target_user_id": action.target_user_id}, room=action.room_id)
     
+    await broadcast_room_state(action.room_id)
+    return {"status": "success"}
+
+@api_router.post("/start-timer")
+async def start_timer_http(action: ActionTimer):
+    user = await db.users.find_one({"id": action.user_id})
+    if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
+    
+    timer_end = (datetime.now(timezone.utc).timestamp() + action.duration_seconds)
+    # Store as ISO string or timestamp? Let's use ISO for consistency with other dates
+    timer_end_iso = datetime.fromtimestamp(timer_end, tz=timezone.utc).isoformat()
+    
+    await db.rooms.update_one({"id": action.room_id}, {"$set": {"timer_end": timer_end_iso}})
+    await broadcast_room_state(action.room_id)
+    return {"status": "success", "timer_end": timer_end_iso}
+
+@api_router.post("/stop-timer")
+async def stop_timer_http(action: ActionBase):
+    user = await db.users.find_one({"id": action.user_id})
+    if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
+    
+    await db.rooms.update_one({"id": action.room_id}, {"$set": {"timer_end": None}})
     await broadcast_room_state(action.room_id)
     return {"status": "success"}
 
