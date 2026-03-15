@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enterprise Portal - POC Integration</title>
+    <script src="config.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -112,7 +113,12 @@
     <div class="main-content">
         <header>
             <h2>Sprint Integration Planning</h2>
-            <div>Usuário: <strong>Muka (Admin)</strong></div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button onclick="toggleSettings()" style="background: none; border: none; cursor: pointer; color: #64748b;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <div>Usuário: <strong>Muka (Admin)</strong></div>
+            </div>
         </header>
         
         <div class="dashboard">
@@ -142,9 +148,56 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100;">
+        <div class="card" style="width: 400px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);">
+            <h3>Configurações da POC</h3>
+            <p style="font-size: 0.875rem; color: #64748b;">Ajuste a URL do PyPlanPoker para teste/demo.</p>
+            <div style="margin: 1rem 0;">
+                <label style="display: block; font-size: 0.75rem; font-weight: bold; margin-bottom: 0.5rem;">URL DO APP</label>
+                <input type="text" id="poker-url-input" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;" placeholder="http://localhost:3000">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button class="btn" style="background: #e2e8f0; color: #1e293b;" onclick="toggleSettings()">Cancelar</button>
+                <button class="btn" onclick="saveSettings()">Salvar e Recarregar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const iframe = document.getElementById('poker-iframe');
         const logs = document.getElementById('event-logs');
+        const urlInput = document.getElementById('poker-url-input');
+        const modal = document.getElementById('settings-modal');
+
+        // Lógica de Detecção de Ambiente
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        let pokerBaseUrl = localStorage.getItem('poker_poc_url') || (isLocal ? POKER_CONFIG.LOCAL_URL : POKER_CONFIG.PRODUCTION_URL);
+
+        function initApp() {
+            const userName = POKER_CONFIG.DEFAULT_USER;
+            const avatar = POKER_CONFIG.DEFAULT_AVATAR;
+            iframe.src = `${pokerBaseUrl}/?embedded=true&userName=${encodeURIComponent(userName)}&avatar=${encodeURIComponent(avatar)}`;
+            urlInput.value = pokerBaseUrl;
+            
+            // Atualiza o texto de ajuda no dashboard
+            document.querySelector('.iframe-container div').textContent = `Embedded: ${pokerBaseUrl}`;
+            
+            addLog(`Ambiente: <strong>${isLocal ? 'Local' : 'Produção'}</strong>`);
+            addLog(`Usando URL do Poker: <code>${pokerBaseUrl}</code>`);
+        }
+
+        function toggleSettings() {
+            modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function saveSettings() {
+            const newUrl = urlInput.value.trim();
+            if (newUrl) {
+                localStorage.setItem('poker_poc_url', newUrl);
+                window.location.reload();
+            }
+        }
 
         function addLog(msg, data) {
             const entry = document.createElement('div');
@@ -185,6 +238,8 @@
             addLog('📤 Enviando tarefa para o Iframe...', taskData.payload);
             iframe.contentWindow.postMessage(taskData, '*'); 
         }
+        // Initialize
+        window.onload = initApp;
     </script>
 </body>
 </html>
