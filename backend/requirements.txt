@@ -13,3 +13,5 @@ pydantic
 dnspython
 google-auth
 requests
+python-jose[cryptography]
+slowapi

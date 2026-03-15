@@ -7,7 +7,10 @@ const useAuthStore = create(
       globalUser: null,
       
       setGlobalUser: (user) => set({ globalUser: user }),
-      logout: () => set({ globalUser: null }),
+      logout: () => {
+        localStorage.removeItem('access_token');
+        set({ globalUser: null });
+      },
     }),
     {
       name: 'pyplanpoker-auth-storage',

@@ -14,6 +14,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from jose import JWTError, jwt
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # --- CONFIGURAÇÃO ---
 ROOT_DIR = Path(__file__).parent
@@ -35,6 +42,32 @@ if mongo_url:
     except Exception as e:
         logger.error(f"❌ Erro MongoDB: {e}")
 
+# --- SECURITY CONFIG ---
+SECRET_KEY = os.environ.get("JWT_SECRET", "super-secret-key-change-it-in-prod")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 1 week
+
+limiter = Limiter(key_func=get_remote_address)
+security = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user_id
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc).timestamp() + (ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
 FIBONACCI_VALUES = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, "?"]
 
 class TaskStatus(str, Enum):
@@ -54,6 +87,7 @@ class UserJoin(BaseModel): room_id: str; name: str; user_id: Optional[str] = Non
 class TaskCreate(BaseModel): room_id: str; title: str; description: Optional[str] = ""
 
 class AuthGoogle(BaseModel): credential: str
+class GuestAuth(BaseModel): name: str
 
 class ActionBase(BaseModel):
     room_id: str
@@ -126,10 +160,31 @@ class Vote(BaseModel):
 # --- SOCKET SETUP ---
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*', logger=True, engineio_logger=True, allow_eio3=True)
 fastapi_app = FastAPI()
+fastapi_app.state.limiter = limiter
+fastapi_app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 api_router = APIRouter(prefix="/api")
 socket_app = socketio.ASGIApp(sio, other_asgi_app=fastapi_app, socketio_path='/api/socket.io')
 
-fastapi_app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# CORS Config: In a real app, this should be restricted to known domains
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
+fastapi_app.add_middleware(
+    CORSMiddleware, 
+    allow_origins=ALLOWED_ORIGINS, 
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"]
+)
+
+@fastapi_app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; object-src 'none';"
+    return response
 socket_users = {}
 
 # --- HELPER FUNCTIONS ---
@@ -181,10 +236,10 @@ async def check_all_voted(room_id: str, task_id: str) -> bool:
 async def health(): return {"status": "online"}
 
 @api_router.post("/auth/google")
-async def auth_google(input: AuthGoogle):
+@limiter.limit("5/minute")
+async def auth_google(request: Request, input: AuthGoogle):
     try:
         client_id = os.environ.get('GOOGLE_CLIENT_ID')
-        # If client_id is None, it won't check audience, useful for local testing
         idinfo = id_token.verify_oauth2_token(input.credential, google_requests.Request(), client_id)
         
         userid = idinfo['sub']
@@ -199,18 +254,38 @@ async def auth_google(input: AuthGoogle):
                  upsert=True
              )
         
+        token = create_access_token(data={"sub": userid})
+        
         return {
             "id": userid,
             "email": email,
             "name": name,
-            "picture": picture
+            "picture": picture,
+            "access_token": token,
+            "token_type": "bearer"
         }
     except ValueError as e:
         logger.error(f"Google auth error: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
+@api_router.post("/auth/guest")
+@limiter.limit("10/minute")
+async def auth_guest(request: Request, input: GuestAuth):
+    guest_id = f"guest-{str(uuid.uuid4())[:12]}"
+    token = create_access_token(data={"sub": guest_id, "is_guest": True})
+    return {
+        "id": guest_id,
+        "name": input.name,
+        "access_token": token,
+        "token_type": "bearer",
+        "is_guest": True
+    }
+
 @api_router.post("/rooms", response_model=Room)
-async def create_room(input: RoomCreate):
+@limiter.limit("10/minute")
+async def create_room(request: Request, input: RoomCreate, current_user_id: str = Depends(get_current_user)):
+    # Overwrite owner_id with authenticated user ID
+    input.owner_id = current_user_id
     values = get_deck_values(input.deck_type, input.custom_deck)
     logger.info(f"🆕 Criando sala: {input.name} | Deck: {input.deck_type} | Valores: {values}")
     room = Room(
@@ -223,7 +298,10 @@ async def create_room(input: RoomCreate):
     return room
 
 @api_router.post("/rooms/{room_id}/join")
-async def join_room_http(room_id: str, input: UserJoin):
+@limiter.limit("20/minute")
+async def join_room_http(request: Request, room_id: str, input: UserJoin):
+    # Join room remains public for now but could be restricted if needed. 
+    # Usually users join via a link.
     room_id = room_id.upper()
     room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
     if not room: raise HTTPException(404, "Room not found")
@@ -267,7 +345,9 @@ async def join_room_http(room_id: str, input: UserJoin):
     return {"user": final_user_doc, "room": room}
 
 @api_router.get("/my-rooms/{user_id}")
-async def get_user_rooms(user_id: str):
+async def get_user_rooms(user_id: str, current_user_id: str = Depends(get_current_user)):
+    if user_id != current_user_id:
+        raise HTTPException(403, "Access denied")
     if db is None: return []
     return await db.rooms.find({"owner_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
 
@@ -276,8 +356,14 @@ async def get_state_http(room_id: str):
     return await get_room_state(room_id.upper())
 
 @api_router.post("/tasks", response_model=Task)
-async def create_task(input: TaskCreate):
+async def create_task(input: TaskCreate, current_user_id: str = Depends(get_current_user)):
     input.room_id = input.room_id.upper()
+    # verify user is admin of room (simplified for now as rooms don't strictly auth join)
+    # but we check if they are owner or have an admin doc
+    user = await db.users.find_one({"id": current_user_id, "room_id": input.room_id})
+    if not user or not user.get("is_admin"):
+        raise HTTPException(403, "Only admins can add tasks")
+
     # Get current max position
     last_task = await db.tasks.find_one({"room_id": input.room_id}, sort=[("position", -1)])
     next_position = (last_task.get("position", 0) + 1) if last_task else 0
@@ -296,8 +382,8 @@ async def get_fibonacci(): return {"values": FIBONACCI_VALUES}
 
 # --- AÇÕES HTTP (COM BROADCAST) ---
 @api_router.post("/active-task")
-async def set_active_task_http(action: ActionActiveTask):
-    user = await db.users.find_one({"id": action.user_id})
+async def set_active_task_http(action: ActionActiveTask, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     await db.tasks.update_many({"room_id": action.room_id, "status": TaskStatus.ACTIVE}, {"$set": {"status": TaskStatus.PENDING}})
@@ -315,7 +401,9 @@ async def set_active_task_http(action: ActionActiveTask):
     return {"status": "success"}
 
 @api_router.post("/vote")
-async def cast_vote_http(action: ActionVote):
+async def cast_vote_http(action: ActionVote, current_user_id: str = Depends(get_current_user)):
+    if action.user_id != current_user_id:
+        raise HTTPException(403, "User ID mismatch")
     user = await db.users.find_one({"id": action.user_id})
     if not user or user.get("is_spectator"): raise HTTPException(403, "Cannot vote")
     
@@ -332,8 +420,8 @@ async def cast_vote_http(action: ActionVote):
     return {"status": "success"}
 
 @api_router.post("/reveal")
-async def reveal_cards_http(action: ActionReveal):
-    user = await db.users.find_one({"id": action.user_id})
+async def reveal_cards_http(action: ActionReveal, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     await db.rooms.update_one({"id": action.room_id}, {"$set": {"cards_revealed": True}})
     state = await get_room_state(action.room_id, include_votes=True)
@@ -341,8 +429,8 @@ async def reveal_cards_http(action: ActionReveal):
     return {"status": "success"}
 
 @api_router.post("/reset")
-async def reset_votes_http(action: ActionReset):
-    user = await db.users.find_one({"id": action.user_id})
+async def reset_votes_http(action: ActionReset, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     if action.task_id: await db.votes.delete_many({"task_id": action.task_id})
     await db.rooms.update_one({"id": action.room_id}, {"$set": {"cards_revealed": False}})
@@ -350,8 +438,8 @@ async def reset_votes_http(action: ActionReset):
     return {"status": "success"}
 
 @api_router.post("/complete")
-async def complete_task_http(action: ActionComplete):
-    user = await db.users.find_one({"id": action.user_id})
+async def complete_task_http(action: ActionComplete, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     # Capture current votes for history
@@ -377,8 +465,8 @@ async def complete_task_http(action: ActionComplete):
     return {"status": "success"}
 
 @api_router.post("/delete-task")
-async def delete_task_http(action: ActionDelete):
-    user = await db.users.find_one({"id": action.user_id})
+async def delete_task_http(action: ActionDelete, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     room = await db.rooms.find_one({"id": action.room_id})
     if room and room.get("active_task_id") == action.task_id:
@@ -389,8 +477,8 @@ async def delete_task_http(action: ActionDelete):
     return {"status": "success"}
 
 @api_router.post("/cancel-task")
-async def cancel_task_http(action: ActionDelete): # Reutilizamos ActionDelete pois só precisa de task_id
-    user = await db.users.find_one({"id": action.user_id})
+async def cancel_task_http(action: ActionDelete, current_user_id: str = Depends(get_current_user)): 
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     # Se a tarefa sendo cancelada for a ativa, remove ela do slot ativo da sala
@@ -404,8 +492,8 @@ async def cancel_task_http(action: ActionDelete): # Reutilizamos ActionDelete po
     return {"status": "success"}
 
 @api_router.post("/kick")
-async def kick_user_http(action: ActionKick):
-    user = await db.users.find_one({"id": action.user_id})
+async def kick_user_http(action: ActionKick, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     # Remove do DB
@@ -419,8 +507,8 @@ async def kick_user_http(action: ActionKick):
     return {"status": "success"}
 
 @api_router.post("/start-timer")
-async def start_timer_http(action: ActionTimer):
-    user = await db.users.find_one({"id": action.user_id})
+async def start_timer_http(action: ActionTimer, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     timer_end = (datetime.now(timezone.utc).timestamp() + action.duration_seconds)
@@ -432,8 +520,8 @@ async def start_timer_http(action: ActionTimer):
     return {"status": "success", "timer_end": timer_end_iso}
 
 @api_router.post("/stop-timer")
-async def stop_timer_http(action: ActionBase):
-    user = await db.users.find_one({"id": action.user_id})
+async def stop_timer_http(action: ActionBase, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     await db.rooms.update_one({"id": action.room_id}, {"$set": {"timer_end": None}})
@@ -441,8 +529,8 @@ async def stop_timer_http(action: ActionBase):
     return {"status": "success"}
 
 @api_router.post("/reorder-tasks")
-async def reorder_tasks_http(action: ActionReorder):
-    user = await db.users.find_one({"id": action.user_id})
+async def reorder_tasks_http(action: ActionReorder, current_user_id: str = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user_id, "room_id": action.room_id})
     if not user or not user.get("is_admin"): raise HTTPException(403, "Admin only")
     
     # Update position for each task

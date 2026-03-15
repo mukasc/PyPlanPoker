@@ -16,7 +16,8 @@ const Login = () => {
   const [guestName, setGuestName] = useState('');
 
   useEffect(() => {
-    if (globalUser) {
+    const token = localStorage.getItem('access_token');
+    if (globalUser && token) {
       navigate('/');
     }
   }, [globalUser, navigate]);
@@ -24,6 +25,9 @@ const Login = () => {
   const handleSuccess = async (response) => {
     try {
       const res = await api.post('/api/auth/google', { credential: response.credential });
+      if (res.data.access_token) {
+        localStorage.setItem('access_token', res.data.access_token);
+      }
       setGlobalUser(res.data);
       toast.success('Successfully logged in');
       navigate('/');
@@ -33,24 +37,25 @@ const Login = () => {
     }
   };
 
-  const handleGuestLogin = (e) => {
+  const handleGuestLogin = async (e) => {
     e.preventDefault();
     if (!guestName.trim()) {
       toast.error('Please enter a display name');
       return;
     }
     
-    // Create a mock user object for the guest
-    const guestUser = {
-      id: `guest-${Math.random().toString(36).substr(2, 9)}`,
-      name: guestName.trim(),
-      picture: null,
-      isGuest: true
-    };
-    
-    setGlobalUser(guestUser);
-    toast.success('Joined as Guest');
-    navigate('/');
+    try {
+      const res = await api.post('/api/auth/guest', { name: guestName.trim() });
+      if (res.data.access_token) {
+        localStorage.setItem('access_token', res.data.access_token);
+      }
+      setGlobalUser(res.data);
+      toast.success('Joined as Guest');
+      navigate('/');
+    } catch (error) {
+      console.error(error);
+      toast.error('Guest login failed');
+    }
   };
 
   return (

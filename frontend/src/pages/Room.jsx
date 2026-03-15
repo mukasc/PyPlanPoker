@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import useGameStore from '../store/gameStore';
 import { connectSocket, disconnectSocket } from '../lib/socket';
 import { Toaster, toast } from '../components/ui/sonner';
@@ -15,8 +15,7 @@ import AdminControls from '../components/game/AdminControls';
 import TaskPanel from '../components/game/TaskPanel';
 
 const FIBONACCI = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '?'];
-const BASE_URL = import.meta.env.VITE_API_URL || '';
-const API = `${BASE_URL}/api`;
+const API = '/api';
 
 const Room = () => {
   const params = useParams();
@@ -31,7 +30,7 @@ const Room = () => {
 
   const handleStartTimer = async (duration) => {
     try {
-      await axios.post(`${API}/start-timer`, {
+      await api.post(`${API}/start-timer`, {
         room_id: room.id,
         user_id: user.id,
         duration_seconds: duration
@@ -43,7 +42,7 @@ const Room = () => {
 
   const handleStopTimer = async () => {
     try {
-      await axios.post(`${API}/stop-timer`, {
+      await api.post(`${API}/stop-timer`, {
         room_id: room.id,
         user_id: user.id
       });
@@ -96,7 +95,7 @@ const Room = () => {
   const fetchState = useCallback(async () => {
     if (!roomIdRef.current) return;
     try {
-      const response = await axios.get(`${API}/rooms/${roomIdRef.current}/state`);
+      const response = await api.get(`${API}/rooms/${roomIdRef.current}/state`);
       // Só atualiza se houver diferença real (opcional, aqui atualizamos direto)
       setRoomState(response.data);
     } catch (error) {
@@ -158,7 +157,7 @@ const Room = () => {
   
   const handleAction = async (endpoint, payload, successMsg) => {
     try {
-      await axios.post(`${API}/${endpoint}`, { ...payload, room_id: roomId, user_id: user.id });
+      await api.post(`${API}/${endpoint}`, { ...payload, room_id: roomId, user_id: user.id });
       if (successMsg) toast.success(successMsg);
       fetchState(); // Força atualização imediata localmente
     } catch (error) {
