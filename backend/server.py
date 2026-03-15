@@ -176,14 +176,30 @@ fastapi_app.add_middleware(
     allow_headers=["*"]
 )
 
+# --- HELPER FUNCTIONS ---
+ALLOWED_FRAME_ANCESTORS = os.environ.get("ALLOWED_FRAME_ANCESTORS", "http://localhost:3000 http://localhost:3001 http://127.0.0.1:3001 http://localhost:5173").split(",")
+
 @fastapi_app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
+    # Remove X-Frame-Options DENY to allow CSP frame-ancestors to handle it
+    # response.headers["X-Frame-Options"] = "DENY" 
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; object-src 'none';"
+    
+    # Allow frame ancestors from environment variable
+    ancestors = " ".join(ALLOWED_FRAME_ANCESTORS)
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; " 
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' https: data:; "
+        "connect-src 'self' ws: wss: http: https:; "
+        f"frame-ancestors 'self' {ancestors};"
+    )
+    response.headers["Content-Security-Policy"] = csp
     return response
 socket_users = {}
 

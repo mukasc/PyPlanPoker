@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Portal - POC Integration</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --sidebar: #1e293b;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background: var(--bg);
+            color: #1e293b;
+        }
+        .sidebar {
+            width: 250px;
+            background: var(--sidebar);
+            color: white;
+            padding: 2rem 1rem;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dashboard {
+            padding: 2rem;
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            overflow: hidden;
+        }
+        .iframe-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        iframe {
+            width: 100%;
+            flex: 1;
+            border: none;
+        }
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .logs {
+            flex: 1;
+            background: #1e293b;
+            color: #38bdf8;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .tag {
+            background: #e2e8f0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h3>🏢 CorpSys v2.0</h3>
+        <p>Projetos</p>
+        <p>Sprints</p>
+        <p><strong>Planning Poker</strong></p>
+    </div>
+    
+    <div class="main-content">
+        <header>
+            <h2>Sprint Integration Planning</h2>
+            <div>Usuário: <strong>Muka (Admin)</strong></div>
+        </header>
+        
+        <div class="dashboard">
+            <div class="iframe-container">
+                <div style="padding: 0.5rem 1rem; background: #f1f5f9; font-size: 0.75rem; color: #64748b; border-bottom: 1px solid #e2e8f0;">
+                    Embedded: http://localhost:3000
+                </div>
+                <!-- Iframe do PyPlanPoker -->
+                <iframe id="poker-iframe" src="http://localhost:3000?embedded=true&userName=Muka%20Corp&avatar=https://api.dicebear.com/7.x/avataaars/svg?seed=Muka"></iframe>
+            </div>
+            
+            <div class="side-panel">
+                <div class="card">
+                    <h3>Contexto da Tarefa</h3>
+                    <p>ID: <span class="tag">TASK-102</span></p>
+                    <p>Título: <strong>Implementar API de Pagamento</strong></p>
+                    <button class="btn" onclick="sendTaskToIframe()">Sincronizar com Poker</button>
+                </div>
+                
+                <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+                    <h3>Histórico de Eventos</h3>
+                    <div id="event-logs" class="logs">
+                        Esperando eventos do PyPlanPoker...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const iframe = document.getElementById('poker-iframe');
+        const logs = document.getElementById('event-logs');
+
+        function addLog(msg, data) {
+            const entry = document.createElement('div');
+            entry.style.marginBottom = '8px';
+            entry.innerHTML = `<span style="color: #94a3b8">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+            if (data) {
+                const pre = document.createElement('pre');
+                pre.style.color = '#fbbf24';
+                pre.textContent = JSON.stringify(data, null, 2);
+                entry.appendChild(pre);
+            }
+            logs.prepend(entry);
+        }
+
+        // Escuta mensagens vindas do PyPlanPoker
+        window.addEventListener('message', (event) => {
+            // Em produção, cheque o origin:
+            // if (event.origin !== "http://localhost:3000") return;
+            
+            const { type, payload } = event.data;
+            if (type === 'POKER_VOTE_COMPLETED') {
+                addLog('✅ Votação Finalizada!', payload);
+            } else if (type === 'POKER_READY') {
+                addLog('🚀 PyPlanPoker está pronto dentro do Iframe.');
+            }
+        });
+
+        function sendTaskToIframe() {
+            const taskData = {
+                type: 'HOST_SYNC_TASK',
+                payload: {
+                    id: 'TASK-102',
+                    title: 'Implementar API de Pagamento',
+                    description: 'Desenvolver a integração com o gateway de pagamento Stripe.'
+                }
+            };
+            // iframe.contentWindow.postMessage(taskData, 'http://localhost:3000');
+            addLog('📤 Enviando tarefa para o Iframe...', taskData.payload);
+            iframe.contentWindow.postMessage(taskData, '*'); 
+        }
+    </script>
+</body>
+</html>

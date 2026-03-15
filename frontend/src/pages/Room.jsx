@@ -108,6 +108,87 @@ const Room = () => {
     fetchState(); // Busca imediata apenas na primeira montagem
   }, [fetchState]);
 
+  // --- ACTIONS (VIA HTTP) ---
+  
+  const handleAction = useCallback(async (endpoint, payload, successMsg) => {
+    try {
+      await api.post(`${API}/${endpoint}`, { ...payload, room_id: roomId, user_id: user.id });
+      if (successMsg) toast.success(successMsg);
+      fetchState(); // Força atualização imediata localmente
+    } catch (error) {
+      console.error(`Error in ${endpoint}:`, error);
+      toast.error('Action failed');
+    }
+  }, [roomId, user, fetchState]);
+
+  const handleAddTask = useCallback((title, description) => {
+    handleAction('tasks', { title, description }, 'Task added');
+  }, [handleAction]);
+
+  const handleLeaveRoom = useCallback(() => {
+    disconnectSocket();
+    leaveRoom();
+    navigate('/');
+  }, [leaveRoom, navigate]);
+
+  const handleVote = useCallback((value) => {
+      if (!roomState.active_task) return;
+      setSelectedCard(value);
+      // CORREÇÃO: Convertemos para String() para satisfazer o Backend
+      handleAction('vote', { 
+        task_id: roomState.active_task.id, 
+        value: String(value) 
+      }, null);
+    }, [roomState.active_task, handleAction, setSelectedCard]);
+
+  const handleRevealCards = useCallback(() => {
+    handleAction('reveal', {}, null);
+  }, [handleAction]);
+
+  const handleResetVotes = useCallback(() => {
+    handleAction('reset', { task_id: roomState.active_task?.id }, 'Votes cleared');
+    setSelectedCard(null);
+  }, [handleAction, roomState.active_task, setSelectedCard]);
+
+  const handleSetActiveTask = useCallback((taskId) => {
+    handleAction('active-task', { task_id: taskId }, null);
+    setSelectedCard(null);
+  }, [handleAction, setSelectedCard]);
+
+  const handleCompleteTask = useCallback((taskId, score) => {
+    handleAction('complete', { task_id: taskId, final_score: score }, `Completed: ${score}`);
+    
+    // --- POC: Notificar o Host ---
+    const completedTask = roomState.tasks.find(t => t.id === taskId);
+    window.parent.postMessage({
+      type: 'POKER_VOTE_COMPLETED',
+      payload: {
+        taskId,
+        title: completedTask?.title,
+        finalScore: score,
+        room: roomId
+      }
+    }, '*');
+
+    setSelectedCard(null);
+  }, [roomId, handleAction, roomState.tasks, setSelectedCard]);
+
+  const handleDeleteTask = useCallback((taskId) => {
+    handleAction('delete-task', { task_id: taskId }, 'Task deleted');
+  }, [handleAction]);
+
+  const handleCancelTask = useCallback((taskId) => {
+    handleAction('cancel-task', { task_id: taskId }, 'Task cancelled');
+  }, [handleAction]);
+
+  const handleReorderTasks = useCallback((taskIds) => {
+    handleAction('reorder-tasks', { task_ids: taskIds }, null);
+  }, [handleAction]);
+
+  const handleKickUser = useCallback((targetUserId) => {
+    handleAction('kick', { target_user_id: targetUserId }, 'User removed');
+  }, [handleAction]);
+
   // --- 2. CONEXÃO SOCKET (REAL-TIME OTIMIZADO) ---
   useEffect(() => {
     if (!user || !roomId) return;
@@ -142,6 +223,16 @@ const Room = () => {
       }
     });
 
+    // --- POC: Escutar tarefas vindo do Host ---
+    const handleHostMessage = (event) => {
+      const { type, payload } = event.data;
+      if (type === 'HOST_SYNC_TASK') {
+        toast.info(`Importando tarefa: ${payload.title}`);
+        handleAddTask(payload.title, payload.description);
+      }
+    };
+    window.addEventListener('message', handleHostMessage);
+
     if (socket.connected) { setIsConnected(true); joinRoom(); }
 
     return () => {
@@ -150,76 +241,9 @@ const Room = () => {
       socket.off('state_update');
       socket.off('reveal_votes');
       socket.off('kicked');
+      window.removeEventListener('message', handleHostMessage);
     };
-  }, [user, roomId, setRoomState, setIsConnected]);
-
-  // --- ACTIONS (VIA HTTP) ---
-  
-  const handleAction = async (endpoint, payload, successMsg) => {
-    try {
-      await api.post(`${API}/${endpoint}`, { ...payload, room_id: roomId, user_id: user.id });
-      if (successMsg) toast.success(successMsg);
-      fetchState(); // Força atualização imediata localmente
-    } catch (error) {
-      console.error(`Error in ${endpoint}:`, error);
-      toast.error('Action failed');
-    }
-  };
-
-  const handleAddTask = useCallback((title, description) => {
-    handleAction('tasks', { title, description }, 'Task added');
-  }, [roomId, user]);
-
-  const handleVote = useCallback((value) => {
-      if (!roomState.active_task) return;
-      setSelectedCard(value);
-      // CORREÇÃO: Convertemos para String() para satisfazer o Backend
-      handleAction('vote', { 
-        task_id: roomState.active_task.id, 
-        value: String(value) 
-      }, null);
-    }, [roomState.active_task, roomId, user]);
-
-  const handleRevealCards = useCallback(() => {
-    handleAction('reveal', {}, null);
-  }, [roomId, user]);
-
-  const handleResetVotes = useCallback(() => {
-    handleAction('reset', { task_id: roomState.active_task?.id }, 'Votes cleared');
-    setSelectedCard(null);
-  }, [roomId, user, roomState.active_task]);
-
-  const handleSetActiveTask = useCallback((taskId) => {
-    handleAction('active-task', { task_id: taskId }, null);
-    setSelectedCard(null);
-  }, [roomId, user]);
-
-  const handleCompleteTask = useCallback((taskId, score) => {
-    handleAction('complete', { task_id: taskId, final_score: score }, `Completed: ${score}`);
-    setSelectedCard(null);
-  }, [roomId, user]);
-
-  const handleDeleteTask = useCallback((taskId) => {
-    handleAction('delete-task', { task_id: taskId }, 'Task deleted');
-  }, [roomId, user]);
-
-  const handleLeaveRoom = useCallback(() => {
-    disconnectSocket();
-    leaveRoom();
-    navigate('/');
-  }, [leaveRoom, navigate]);
-
-  const handleCancelTask = useCallback((taskId) => {
-    handleAction('cancel-task', { task_id: taskId }, 'Task cancelled');
-  }, [roomId, user]);
-
-  const handleReorderTasks = useCallback((taskIds) => {
-    handleAction('reorder-tasks', { task_ids: taskIds }, null);
-  }, [roomId, user]);
-
-  const handleKickUser = useCallback((targetUserId) => {
-    handleAction('kick', { target_user_id: targetUserId }, 'User removed');
-  }, [roomId, user]);
+  }, [user, roomId, setRoomState, setIsConnected, handleAddTask, handleLeaveRoom, playSound, SOUNDS.REVEAL]);
 
   if (!user || !room) return null;
 

@@ -64,22 +64,6 @@ python -m venv venv
 source venv/bin/scripts/activate  # No Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
-
-#### Variáveis de Ambiente (.env)
-Crie um arquivo `.env` na pasta `backend`:
-```env
-MONGO_URL=your_mongodb_connection_string
-DB_NAME=pyplanpoker
-JWT_SECRET=your_super_secret_key
-GOOGLE_CLIENT_ID=your_google_client_id
-ALLOWED_ORIGINS=http://localhost:3000
-```
-
-#### Rodar o Servidor
-```bash
-python server.py
-```
-
 ### 3. Frontend Setup
 Navegue para a pasta `frontend` e instale as dependências:
 ```bash
