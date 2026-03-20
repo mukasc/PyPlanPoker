@@ -249,7 +249,21 @@ async def check_all_voted(room_id: str, task_id: str) -> bool:
 
 # --- ROTAS HTTP ---
 @fastapi_app.get("/api/health")
-async def health(): return {"status": "online"}
+async def health():
+    db_status = "offline"
+    if db is not None:
+        try:
+            # Ping simplificado para o MongoDB
+            await db.command("ping")
+            db_status = "online"
+        except Exception as e:
+            logger.error(f"❌ Erro ao verificar DB no health check: {e}")
+            db_status = "connecting"
+    
+    return {
+        "status": "online" if db_status == "online" else "booting",
+        "database": db_status
+    }
 
 @api_router.post("/auth/google")
 @limiter.limit("5/minute")

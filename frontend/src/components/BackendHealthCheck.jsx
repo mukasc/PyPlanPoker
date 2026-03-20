@@ -7,6 +7,7 @@ const BackendHealthCheck = ({ children }) => {
   const { isBackendReady, setBackendReady } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
   const [errorCount, setErrorCount] = useState(0);
+  const [dbStatus, setDbStatus] = useState('offline');
 
   useEffect(() => {
     let intervalId;
@@ -14,13 +15,14 @@ const BackendHealthCheck = ({ children }) => {
     const checkHealth = async () => {
       try {
         const response = await api.get('/api/health', {
-          // Timeout curto para a primeira tentativa, para sabermos logo se está offline
           timeout: 5000,
-          // Não queremos interceptores poluindo esse check inicial se der erro
           _isHealthCheck: true 
         });
         
-        if (response.data && response.data.status === 'online') {
+        const { status, database } = response.data;
+        setDbStatus(database || 'offline');
+
+        if (status === 'online' && database === 'online') {
           setBackendReady(true);
           setIsChecking(false);
           if (intervalId) clearInterval(intervalId);
@@ -28,7 +30,6 @@ const BackendHealthCheck = ({ children }) => {
       } catch (error) {
         console.log('Backend ainda acordando...');
         setErrorCount(prev => prev + 1);
-        // Se falhar, tentamos novamente a cada 3 segundos
         if (!intervalId) {
           intervalId = setInterval(checkHealth, 3000);
         }
@@ -79,7 +80,11 @@ const BackendHealthCheck = ({ children }) => {
                 <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
               </div>
               <span className="text-sm font-medium text-slate-200">
-                {errorCount > 0 ? 'Acordando o servidor Render...' : 'Iniciando conexão...'}
+                {dbStatus === 'connecting' 
+                  ? 'Conectando ao banco de dados (MongoDB)...' 
+                  : errorCount > 0 
+                  ? 'Acordando o servidor Render...' 
+                  : 'Iniciando conexão...'}
               </span>
             </div>
             
