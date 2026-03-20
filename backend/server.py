@@ -274,6 +274,14 @@ async def check_all_voted(room_id: str, task_id: str) -> bool:
     return all(user["id"] in {v["user_id"] for v in votes} for user in voters)
 
 # --- ROTAS HTTP ---
+@fastapi_app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "message": "PyPlanPoker Backend is running",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
 @fastapi_app.get("/api/health")
 async def health():
     db_status = "offline"
