@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -18,7 +18,6 @@ from jose import JWTError, jwt
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -31,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 mongo_url = os.environ.get('MONGO_URL')
 db_name = os.environ.get('DB_NAME', 'pyplanpoker')
-client = None
-db = None
+client: Optional[AsyncIOMotorClient] = None
+db: Any = None
 
 if mongo_url:
     try:
@@ -83,8 +82,17 @@ class RoomCreate(BaseModel):
     deck_type: str = "FIBONACCI"
     custom_deck: Optional[str] = None
 
-class UserJoin(BaseModel): room_id: str; name: str; user_id: Optional[str] = None; picture: Optional[str] = None; is_spectator: bool = False
-class TaskCreate(BaseModel): room_id: str; title: str; description: Optional[str] = ""
+class UserJoin(BaseModel):
+    room_id: str
+    name: str
+    user_id: Optional[str] = None
+    picture: Optional[str] = None
+    is_spectator: bool = False
+
+class TaskCreate(BaseModel):
+    room_id: str
+    title: str
+    description: Optional[str] = ""
 
 class AuthGoogle(BaseModel): credential: str
 class GuestAuth(BaseModel): name: str
@@ -96,19 +104,37 @@ class ActionBase(BaseModel):
     @field_validator('room_id')
     def uppercase_room_id(cls, v): return v.upper()
 
-class ActionActiveTask(ActionBase): task_id: str
-class ActionVote(ActionBase): task_id: str; value: str
-class ActionReveal(ActionBase): pass
-class ActionReset(ActionBase): task_id: Optional[str] = None
-class ActionComplete(ActionBase): task_id: str; final_score: str
-class ActionDelete(ActionBase): task_id: str
-class ActionKick(ActionBase): target_user_id: str
-class ActionTimer(ActionBase): duration_seconds: int
-class ActionReorder(ActionBase): task_ids: List[str]
+class ActionActiveTask(ActionBase):
+    task_id: str
+
+class ActionVote(ActionBase):
+    task_id: str
+    value: str
+class ActionReveal(ActionBase):
+    pass
+
+class ActionReset(ActionBase):
+    task_id: Optional[str] = None
+
+class ActionComplete(ActionBase):
+    task_id: str
+    final_score: str
+
+class ActionDelete(ActionBase):
+    task_id: str
+
+class ActionKick(ActionBase):
+    target_user_id: str
+
+class ActionTimer(ActionBase):
+    duration_seconds: int
+
+class ActionReorder(ActionBase):
+    task_ids: List[str]
 
 class Room(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8].upper())
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8].upper())
     name: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     owner_id: Optional[str] = None
@@ -167,7 +193,7 @@ api_router = APIRouter(prefix="/api")
 socket_app = socketio.ASGIApp(sio, other_asgi_app=fastapi_app, socketio_path='/api/socket.io')
 
 # CORS Config: In a real app, this should be restricted to known domains
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = os.environ.get("CORS_ORIGINS", os.environ.get("ALLOWED_ORIGINS", "*")).split(",")
 fastapi_app.add_middleware(
     CORSMiddleware, 
     allow_origins=ALLOWED_ORIGINS, 
