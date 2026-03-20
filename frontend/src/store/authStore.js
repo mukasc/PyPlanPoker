@@ -5,8 +5,10 @@ const useAuthStore = create(
   persist(
     (set) => ({
       globalUser: null,
+      isBackendReady: false,
       
       setGlobalUser: (user) => set({ globalUser: user }),
+      setBackendReady: (isReady) => set({ isBackendReady: isReady }),
       logout: () => {
         localStorage.removeItem('access_token');
         set({ globalUser: null });
