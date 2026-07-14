@@ -64,7 +64,7 @@ const Login = () => {
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
       </div>
-      <Toaster position="top-center" theme="dark" />
+      <Toaster position="top-center" theme={import.meta.env.VITE_THEME === 'bms' ? 'light' : 'dark'} />
       
       <div className="text-center mb-12 relative z-10">
         <div className="flex items-center justify-center gap-3 mb-4">

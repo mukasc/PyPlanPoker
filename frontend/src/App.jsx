@@ -18,6 +18,18 @@ function App() {
   const { setGlobalUser, globalUser } = useAuthStore();
 
   useEffect(() => {
+    const theme = import.meta.env.VITE_THEME || 'classic';
+    const root = window.document.documentElement;
+    if (theme === 'bms') {
+      root.classList.remove('dark', 'theme-classic');
+      root.classList.add('light', 'theme-bms');
+    } else {
+      root.classList.remove('light', 'theme-bms');
+      root.classList.add('dark', 'theme-classic');
+    }
+  }, []);
+
+  useEffect(() => {
     // 1. Verificar se estamos num iframe (embedded)
     const params = new URLSearchParams(window.location.search);
     const isEmbedded = params.get('embedded') === 'true';
@@ -51,7 +63,7 @@ function App() {
   }, [setGlobalUser, globalUser]);
 
   return (
-    <div className="App dark">
+    <div className="App">
       <BackendHealthCheck>
         <BrowserRouter>
           <Routes>

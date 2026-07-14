@@ -135,7 +135,7 @@ const Landing = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
       </div>
       
-      <Toaster position="top-center" theme="dark" />
+      <Toaster position="top-center" theme={import.meta.env.VITE_THEME === 'bms' ? 'light' : 'dark'} />
       
       {/* Logo and Title */}
       <div className="text-center mb-12 relative z-10">

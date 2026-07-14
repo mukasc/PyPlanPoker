@@ -258,7 +258,7 @@ const Room = () => {
 
   return (
     <div className="h-screen bg-slate-950 overflow-hidden">
-      <Toaster position="top-center" theme="dark" />
+      <Toaster position="top-center" theme={import.meta.env.VITE_THEME === 'bms' ? 'light' : 'dark'} />
       <div className="grid grid-cols-1 lg:grid-cols-12 h-full">
         <Sidebar
           roomId={roomId}
