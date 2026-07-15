@@ -223,6 +223,13 @@ const Room = () => {
       }
     });
 
+    socket.on('room_deleted', (data) => {
+      if (data.room_id === roomId) {
+        toast.error('Esta sala foi excluída pelo administrador.');
+        handleLeaveRoom();
+      }
+    });
+
     // --- POC: Escutar tarefas vindo do Host ---
     const handleHostMessage = (event) => {
       const { type, payload } = event.data;
@@ -241,6 +248,7 @@ const Room = () => {
       socket.off('state_update');
       socket.off('reveal_votes');
       socket.off('kicked');
+      socket.off('room_deleted');
       window.removeEventListener('message', handleHostMessage);
     };
   }, [user, roomId, setRoomState, setIsConnected, handleAddTask, handleLeaveRoom, playSound, SOUNDS.REVEAL]);
