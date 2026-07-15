@@ -190,3 +190,93 @@ async def test_merge_users():
     # Broadcast to affected rooms
     server.broadcast_room_state.assert_any_call("ROOM_A")
     server.broadcast_room_state.assert_any_call("ROOM_B")
+
+@pytest.mark.asyncio
+async def test_batch_delete_users():
+    mock_db = MagicMock()
+    
+    # 2 users own rooms
+    mock_rooms_cursor = AsyncMock()
+    mock_rooms_cursor.to_list.return_value = [{"id": "ROOM_1"}, {"id": "ROOM_2"}]
+    mock_db.rooms.find.return_value = mock_rooms_cursor
+    
+    # Check returns relations
+    mock_db.rooms.count_documents = AsyncMock(return_value=2)
+    mock_db.votes.count_documents = AsyncMock(return_value=4)
+    mock_db.users.count_documents = AsyncMock(return_value=3)
+    
+    # Memberships
+    mock_memberships_cursor = AsyncMock()
+    mock_memberships_cursor.to_list.return_value = [{"room_id": "ROOM_1"}, {"room_id": "ROOM_3"}]
+    mock_db.users.find.return_value = mock_memberships_cursor
+    
+    # Tasks
+    mock_tasks_cursor = AsyncMock()
+    mock_tasks_cursor.to_list.return_value = [{"id": "TASK_1"}]
+    mock_db.tasks.find.return_value = mock_tasks_cursor
+    
+    # Async delete mocks
+    mock_db.votes.delete_many = AsyncMock()
+    mock_db.tasks.delete_many = AsyncMock()
+    mock_db.users.delete_many = AsyncMock()
+    mock_db.rooms.delete_many = AsyncMock()
+    mock_db.global_users.delete_many = AsyncMock()
+    
+    server.db = mock_db
+    server.sio.emit = AsyncMock()
+    server.broadcast_room_state = AsyncMock()
+    
+    req = server.BatchDeleteRequest(ids=["user-1", "user-2"], confirm=True)
+    res = await server.batch_delete_users(req)
+    
+    assert res["status"] == "success"
+    assert res["deleted_count"] == 2
+    
+    # Deletes votes for tasks in owned rooms
+    mock_db.votes.delete_many.assert_any_call({"task_id": {"$in": ["TASK_1"]}})
+    
+    # Deletes tasks, users, and rooms
+    mock_db.tasks.delete_many.assert_any_call({"room_id": {"$in": ["ROOM_1", "ROOM_2"]}})
+    mock_db.users.delete_many.assert_any_call({"room_id": {"$in": ["ROOM_1", "ROOM_2"]}})
+    mock_db.rooms.delete_many.assert_any_call({"id": {"$in": ["ROOM_1", "ROOM_2"]}})
+    
+    # Deletes direct votes, memberships, and global records
+    mock_db.votes.delete_many.assert_any_call({"user_id": {"$in": ["user-1", "user-2"]}})
+    mock_db.users.delete_many.assert_any_call({"id": {"$in": ["user-1", "user-2"]}})
+    mock_db.global_users.delete_many.assert_any_call({"id": {"$in": ["user-1", "user-2"]}})
+    
+    # Broadcast to remaining affected rooms
+    server.broadcast_room_state.assert_called_with("ROOM_3")
+
+@pytest.mark.asyncio
+async def test_batch_delete_rooms():
+    mock_db = MagicMock()
+    
+    # Tasks in rooms
+    mock_tasks_cursor = AsyncMock()
+    mock_tasks_cursor.to_list.return_value = [{"id": "T1"}, {"id": "T2"}]
+    mock_db.tasks.find.return_value = mock_tasks_cursor
+    
+    mock_db.votes.delete_many = AsyncMock()
+    mock_db.tasks.delete_many = AsyncMock()
+    mock_db.users.delete_many = AsyncMock()
+    mock_db.rooms.delete_many = AsyncMock()
+    
+    server.db = mock_db
+    server.sio.emit = AsyncMock()
+    
+    req = server.BatchDeleteRoomsRequest(ids=["ROOM_A", "ROOM_B"])
+    res = await server.batch_delete_rooms(req)
+    
+    assert res["status"] == "success"
+    assert res["deleted_count"] == 2
+    
+    # Deletes votes, tasks, memberships and rooms
+    mock_db.votes.delete_many.assert_called_with({"task_id": {"$in": ["T1", "T2"]}})
+    mock_db.tasks.delete_many.assert_called_with({"room_id": {"$in": ["ROOM_A", "ROOM_B"]}})
+    mock_db.users.delete_many.assert_called_with({"room_id": {"$in": ["ROOM_A", "ROOM_B"]}})
+    mock_db.rooms.delete_many.assert_called_with({"id": {"$in": ["ROOM_A", "ROOM_B"]}})
+    
+    # Socket emits
+    server.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_A"}, room="ROOM_A")
+    server.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_B"}, room="ROOM_B")

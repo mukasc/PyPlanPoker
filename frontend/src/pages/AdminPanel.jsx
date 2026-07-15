@@ -31,19 +31,33 @@ export default function AdminPanel() {
   const [searchUser, setSearchUser] = useState("");
   const [searchRoom, setSearchRoom] = useState("");
   
+  // Seleção em Lote (IDs selecionados)
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedRoomIds, setSelectedRoomIds] = useState([]);
+  
   // Estado de Mesclagem
   const [targetUserId, setTargetUserId] = useState("");
   const [selectedSources, setSelectedSources] = useState([]);
   const [isMerging, setIsMerging] = useState(false);
   
-  // Modais de Confirmação
+  // Modais de Confirmação - Usuário único
   const [deleteTargetUser, setDeleteTargetUser] = useState(null);
   const [userRelationsCheck, setUserRelationsCheck] = useState(null);
   const [isCheckingRelations, setIsCheckingRelations] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
   
+  // Modais de Confirmação - Usuários em Lote
+  const [showBulkUserModal, setShowBulkUserModal] = useState(false);
+  const [bulkUserRelations, setBulkUserRelations] = useState(null);
+  const [isDeletingBulkUsers, setIsDeletingBulkUsers] = useState(false);
+  
+  // Modais de Confirmação - Sala única
   const [deleteTargetRoom, setDeleteTargetRoom] = useState(null);
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
+  
+  // Modais de Confirmação - Salas em Lote
+  const [showBulkRoomModal, setShowBulkRoomModal] = useState(false);
+  const [isDeletingBulkRooms, setIsDeletingBulkRooms] = useState(false);
 
   // Carregar Dados
   const fetchData = async (isRefresh = false) => {
@@ -70,9 +84,47 @@ export default function AdminPanel() {
     fetchData();
   }, []);
 
+  // --- FILTROS ---
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchUser.toLowerCase()) || 
+    user.id.toLowerCase().includes(searchUser.toLowerCase()) ||
+    (user.email && user.email.toLowerCase().includes(searchUser.toLowerCase()))
+  );
+
+  const filteredRooms = rooms.filter(room => 
+    room.name.toLowerCase().includes(searchRoom.toLowerCase()) || 
+    room.id.toLowerCase().includes(searchRoom.toLowerCase())
+  );
+
   // --- FUNÇÕES DE USUÁRIOS ---
 
-  // Iniciar fluxo de exclusão de usuário (verifica dependências primeiro)
+  // Seleção individual de usuários
+  const handleSelectUser = (userId) => {
+    if (selectedUserIds.includes(userId)) {
+      setSelectedUserIds(prev => prev.filter(id => id !== userId));
+    } else {
+      setSelectedUserIds(prev => [...prev, userId]);
+    }
+  };
+
+  // Seleção master de usuários
+  const handleSelectAllUsers = () => {
+    const filteredUserIds = filteredUsers.map(u => u.id);
+    const allSelected = filteredUserIds.every(id => selectedUserIds.includes(id));
+    
+    if (allSelected) {
+      // Remove do estado todos os listados na tela
+      setSelectedUserIds(prev => prev.filter(id => !filteredUserIds.includes(id)));
+    } else {
+      // Adiciona todos os listados sem duplicar
+      setSelectedUserIds(prev => {
+        const unique = new Set([...prev, ...filteredUserIds]);
+        return Array.from(unique);
+      });
+    }
+  };
+
+  // Iniciar fluxo de exclusão de usuário único (verifica dependências primeiro)
   const handleInitiateDeleteUser = async (user) => {
     setDeleteTargetUser(user);
     setIsCheckingRelations(true);
@@ -93,9 +145,11 @@ export default function AdminPanel() {
     try {
       await api.delete(`/api/admin/users/${deleteTargetUser.id}?confirm=true`);
       toast.success(`Usuário ${deleteTargetUser.name} excluído com sucesso!`);
-      // Limpa seleções se o usuário excluído estivesse selecionado para mesclagem
+      
+      // Limpa das seleções
       if (targetUserId === deleteTargetUser.id) setTargetUserId("");
       setSelectedSources(prev => prev.filter(id => id !== deleteTargetUser.id));
+      setSelectedUserIds(prev => prev.filter(id => id !== deleteTargetUser.id));
       
       setDeleteTargetUser(null);
       setUserRelationsCheck(null);
@@ -108,6 +162,52 @@ export default function AdminPanel() {
     }
   };
 
+  // Iniciar exclusão em lote de usuários
+  const handleInitiateBulkDeleteUsers = () => {
+    const selectedUsers = users.filter(u => selectedUserIds.includes(u.id));
+    
+    // Calcula as relações do lote a partir dos dados locais já carregados
+    const ownedRooms = selectedUsers.reduce((sum, u) => sum + (u.rooms_owned || 0), 0);
+    const votes = selectedUsers.reduce((sum, u) => sum + (u.votes_cast || 0), 0);
+    const memberships = selectedUsers.reduce((sum, u) => sum + (u.rooms_participated || 0), 0);
+    
+    setBulkUserRelations({
+      owned_rooms: ownedRooms,
+      votes: votes,
+      memberships: memberships,
+      has_relations: (ownedRooms > 0 || votes > 0 || memberships > 0)
+    });
+    setShowBulkUserModal(true);
+  };
+
+  // Confirmar exclusão em lote de usuários
+  const handleConfirmBulkDeleteUsers = async () => {
+    setIsDeletingBulkUsers(true);
+    try {
+      await api.post("/api/admin/users/batch-delete", {
+        ids: selectedUserIds,
+        confirm: true
+      });
+      
+      toast.success(`${selectedUserIds.length} usuários excluídos com sucesso!`);
+      
+      // Limpa seleções
+      if (selectedUserIds.includes(targetUserId)) setTargetUserId("");
+      setSelectedSources(prev => prev.filter(id => !selectedUserIds.includes(id)));
+      setSelectedUserIds([]);
+      
+      setShowBulkUserModal(false);
+      setBulkUserRelations(null);
+      fetchData();
+    } catch (error) {
+      console.error("Erro ao excluir usuários em lote:", error);
+      toast.error("Erro ao excluir lote de usuários.");
+    } finally {
+      setIsDeletingBulkUsers(false);
+    }
+  };
+
+  // Toggle do Merge
   const handleToggleSourceUser = (userId) => {
     if (selectedSources.includes(userId)) {
       setSelectedSources(prev => prev.filter(id => id !== userId));
@@ -138,6 +238,7 @@ export default function AdminPanel() {
       
       // Limpar seleção
       setSelectedSources([]);
+      setSelectedUserIds([]);
       fetchData();
     } catch (error) {
       console.error("Erro ao mesclar usuários:", error);
@@ -149,12 +250,37 @@ export default function AdminPanel() {
 
   // --- FUNÇÕES DE SALAS ---
 
+  // Seleção individual de salas
+  const handleSelectRoom = (roomId) => {
+    if (selectedRoomIds.includes(roomId)) {
+      setSelectedRoomIds(prev => prev.filter(id => id !== roomId));
+    } else {
+      setSelectedRoomIds(prev => [...prev, roomId]);
+    }
+  };
+
+  // Seleção master de salas
+  const handleSelectAllRooms = () => {
+    const filteredRoomIds = filteredRooms.map(r => r.id);
+    const allSelected = filteredRoomIds.every(id => selectedRoomIds.includes(id));
+    
+    if (allSelected) {
+      setSelectedRoomIds(prev => prev.filter(id => !filteredRoomIds.includes(id)));
+    } else {
+      setSelectedRoomIds(prev => {
+        const unique = new Set([...prev, ...filteredRoomIds]);
+        return Array.from(unique);
+      });
+    }
+  };
+
   const handleConfirmDeleteRoom = async () => {
     if (!deleteTargetRoom) return;
     setIsDeletingRoom(true);
     try {
       await api.delete(`/api/admin/rooms/${deleteTargetRoom.id}`);
       toast.success(`Sala ${deleteTargetRoom.name} (${deleteTargetRoom.id}) excluída com sucesso!`);
+      setSelectedRoomIds(prev => prev.filter(id => id !== deleteTargetRoom.id));
       setDeleteTargetRoom(null);
       fetchData();
     } catch (error) {
@@ -165,23 +291,31 @@ export default function AdminPanel() {
     }
   };
 
-  // --- FILTROS ---
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchUser.toLowerCase()) || 
-    user.id.toLowerCase().includes(searchUser.toLowerCase()) ||
-    (user.email && user.email.toLowerCase().includes(searchUser.toLowerCase()))
-  );
+  // Confirmar exclusão em lote de salas
+  const handleConfirmBulkDeleteRooms = async () => {
+    setIsDeletingBulkRooms(true);
+    try {
+      await api.post("/api/admin/rooms/batch-delete", {
+        ids: selectedRoomIds
+      });
+      toast.success(`${selectedRoomIds.length} salas excluídas com sucesso!`);
+      setSelectedRoomIds([]);
+      setShowBulkRoomModal(false);
+      fetchData();
+    } catch (error) {
+      console.error("Erro ao excluir salas em lote:", error);
+      toast.error("Erro ao excluir lote de salas.");
+    } finally {
+      setIsDeletingBulkRooms(false);
+    }
+  };
 
-  const filteredRooms = rooms.filter(room => 
-    room.name.toLowerCase().includes(searchRoom.toLowerCase()) || 
-    room.id.toLowerCase().includes(searchRoom.toLowerCase())
-  );
-
-  // Usuários válidos para Destino de Mesclagem (Google ou Guest Principal)
+  // Usuários válidos para Destino de Mesclagem
   const targetUserOptions = users.filter(u => !selectedSources.includes(u.id));
-  
-  // Usuários válidos para Origem (Normalmente Guests ou qualquer usuário diferente do destino)
-  const sourceUserOptions = users.filter(u => u.id !== targetUserId && u.type === "Guest");
+
+  // Rastreia se tudo do filtro está selecionado
+  const allFilteredUsersSelected = filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.includes(u.id));
+  const allFilteredRoomsSelected = filteredRooms.length > 0 && filteredRooms.every(r => selectedRoomIds.includes(r.id));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
@@ -222,11 +356,11 @@ export default function AdminPanel() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full pb-28">
         {/* Tabs Selectors */}
         <div className="flex border-b border-slate-800 mb-8 gap-6">
           <button
-            onClick={() => setActiveTab("users")}
+            onClick={() => { setActiveTab("users"); setSelectedRoomIds([]); }}
             className={`pb-4 px-2 text-sm font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 relative -bottom-[2px] ${
               activeTab === "users"
                 ? "border-indigo-500 text-indigo-400"
@@ -238,7 +372,7 @@ export default function AdminPanel() {
           </button>
           
           <button
-            onClick={() => setActiveTab("rooms")}
+            onClick={() => { setActiveTab("rooms"); setSelectedUserIds([]); }}
             className={`pb-4 px-2 text-sm font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 relative -bottom-[2px] ${
               activeTab === "rooms"
                 ? "border-indigo-500 text-indigo-400"
@@ -281,6 +415,14 @@ export default function AdminPanel() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400 text-xs font-mono tracking-wider">
+                          <th className="pb-3 pl-2 w-10">
+                            <input
+                              type="checkbox"
+                              checked={allFilteredUsersSelected}
+                              onChange={handleSelectAllUsers}
+                              className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                            />
+                          </th>
                           <th className="pb-3 pl-2">Status / Tipo</th>
                           <th className="pb-3">Usuário</th>
                           <th className="pb-3 text-center">Salas (Dono)</th>
@@ -292,13 +434,21 @@ export default function AdminPanel() {
                       <tbody className="divide-y divide-slate-800/50">
                         {filteredUsers.length === 0 ? (
                           <tr>
-                            <td colSpan="6" className="py-8 text-center text-slate-500 text-sm">
+                            <td colSpan="7" className="py-8 text-center text-slate-500 text-sm">
                               Nenhum usuário encontrado.
                             </td>
                           </tr>
                         ) : (
                           filteredUsers.map((user) => (
                             <tr key={user.id} className="group hover:bg-slate-800/20 transition-all">
+                              <td className="py-3.5 pl-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedUserIds.includes(user.id)}
+                                  onChange={() => handleSelectUser(user.id)}
+                                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                                />
+                              </td>
                               <td className="py-3.5 pl-2">
                                 <div className="flex items-center gap-2">
                                   <span 
@@ -497,6 +647,14 @@ export default function AdminPanel() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-slate-800 text-slate-400 text-xs font-mono tracking-wider">
+                        <th className="pb-3 pl-2 w-10">
+                          <input
+                            type="checkbox"
+                            checked={allFilteredRoomsSelected}
+                            onChange={handleSelectAllRooms}
+                            className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                          />
+                        </th>
                         <th className="pb-3 pl-2">Código</th>
                         <th className="pb-3">Nome da Sala</th>
                         <th className="pb-3">Dono (ID)</th>
@@ -510,7 +668,7 @@ export default function AdminPanel() {
                     <tbody className="divide-y divide-slate-800/50">
                       {filteredRooms.length === 0 ? (
                         <tr>
-                          <td colSpan="8" className="py-8 text-center text-slate-500 text-sm">
+                          <td colSpan="9" className="py-8 text-center text-slate-500 text-sm">
                             Nenhuma sala encontrada.
                           </td>
                         </tr>
@@ -519,6 +677,14 @@ export default function AdminPanel() {
                           const ownerUser = users.find(u => u.id === room.owner_id);
                           return (
                             <tr key={room.id} className="group hover:bg-slate-800/20 transition-all">
+                              <td className="py-3.5 pl-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedRoomIds.includes(room.id)}
+                                  onChange={() => handleSelectRoom(room.id)}
+                                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                                />
+                              </td>
                               <td className="py-3.5 pl-2 font-mono font-bold text-indigo-400">
                                 {room.id}
                               </td>
@@ -580,9 +746,65 @@ export default function AdminPanel() {
         )}
       </main>
 
+      {/* --- FLOATING ACTION BARS (AÇÕES EM LOTE) --- */}
+
+      {/* Barra de Ações em Lote para Usuários */}
+      {selectedUserIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 flex items-center gap-6 shadow-2xl z-40 animate-in slide-in-from-bottom duration-300 max-w-lg w-[calc(100%-2rem)] justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
+            <span className="text-sm font-semibold text-slate-300">
+              {selectedUserIds.length} {selectedUserIds.length === 1 ? 'usuário selecionado' : 'usuários selecionados'}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleInitiateBulkDeleteUsers}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Excluir Selecionados
+            </button>
+            <button
+              onClick={() => setSelectedUserIds([])}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Barra de Ações em Lote para Salas */}
+      {selectedRoomIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 flex items-center gap-6 shadow-2xl z-40 animate-in slide-in-from-bottom duration-300 max-w-lg w-[calc(100%-2rem)] justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
+            <span className="text-sm font-semibold text-slate-300">
+              {selectedRoomIds.length} {selectedRoomIds.length === 1 ? 'sala selecionada' : 'salas selecionadas'}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowBulkRoomModal(true)}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Excluir Selecionadas
+            </button>
+            <button
+              onClick={() => setSelectedRoomIds([])}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* --- MODAIS DE CONFIRMAÇÃO --- */}
 
-      {/* Modal Deletar Usuário (Dinamizado conforme dependências) */}
+      {/* Modal Deletar Usuário Único */}
       {deleteTargetUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setDeleteTargetUser(null)} />
@@ -650,7 +872,68 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* Modal Deletar Sala */}
+      {/* Modal Deletar Usuários em Lote */}
+      {showBulkUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowBulkUserModal(false)} />
+          
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="p-3 bg-red-500/10 text-red-400 rounded-xl">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white">Confirmar Exclusão em Lote</h4>
+                <p className="text-sm text-slate-400 mt-1">
+                  Deseja realmente excluir os <span className="font-bold text-slate-200">{selectedUserIds.length} usuários</span> selecionados?
+                </p>
+              </div>
+            </div>
+
+            {bulkUserRelations && (
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4 space-y-2 text-xs">
+                <div className="font-semibold text-slate-300 flex items-center gap-1.5 mb-1 text-amber-400">
+                  <Info className="w-3.5 h-3.5" />
+                  Impacto Total do Lote:
+                </div>
+                <div className="grid grid-cols-2 gap-y-1 text-slate-400">
+                  <span>Salas a serem excluídas:</span>
+                  <span className={`font-mono text-right ${bulkUserRelations.owned_rooms > 0 ? "text-red-400 font-bold" : "text-slate-300"}`}>
+                    {bulkUserRelations.owned_rooms}
+                  </span>
+                  <span>Votos a serem excluídos:</span>
+                  <span className="font-mono text-slate-300 text-right">{bulkUserRelations.votes}</span>
+                  <span>Participações removidas:</span>
+                  <span className="font-mono text-slate-300 text-right">{bulkUserRelations.memberships}</span>
+                </div>
+                {bulkUserRelations.has_relations && (
+                  <div className="text-[10px] text-red-400/90 leading-relaxed border-t border-slate-900 pt-2 mt-2">
+                    ⚠️ A ação é irreversível. Todas as salas que pertencem a estes usuários serão excluídas e jogadores nelas conectados serão desconectados.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                onClick={() => { setShowBulkUserModal(false); setBulkUserRelations(null); }}
+                className="px-4 py-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-sm transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmBulkDeleteUsers}
+                disabled={isDeletingBulkUsers}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
+              >
+                {isDeletingBulkUsers ? "Excluindo..." : "Confirmar Exclusão em Lote"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Deletar Sala Única */}
       {deleteTargetRoom && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setDeleteTargetRoom(null)} />
@@ -693,6 +976,54 @@ export default function AdminPanel() {
                 className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
               >
                 {isDeletingRoom ? "Excluindo..." : "Excluir Sala"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Deletar Salas em Lote */}
+      {showBulkRoomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowBulkRoomModal(false)} />
+          
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="p-3 bg-red-500/10 text-red-400 rounded-xl">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-white">Excluir Salas em Lote</h4>
+                <p className="text-sm text-slate-400 mt-1">
+                  Você está prestes a excluir permanentemente <span className="font-bold text-slate-200">{selectedRoomIds.length} salas</span>.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4 text-xs text-slate-400 space-y-1 leading-relaxed">
+              <p>Essa ação irá apagar em todas as salas selecionadas:</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Todo o histórico de tarefas criadas.</li>
+                <li>Todos os votos e discussões.</li>
+              </ul>
+              <p className="text-red-400 font-semibold mt-2">
+                ⚠️ Todos os jogadores conectados a essas salas serão desconectados no mesmo instante.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowBulkRoomModal(false)}
+                className="px-4 py-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-sm transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmBulkDeleteRooms}
+                disabled={isDeletingBulkRooms}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
+              >
+                {isDeletingBulkRooms ? "Excluindo..." : "Confirmar Exclusão em Lote"}
               </button>
             </div>
           </div>

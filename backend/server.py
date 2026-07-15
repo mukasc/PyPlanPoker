@@ -132,6 +132,13 @@ class ActionTimer(ActionBase):
 class ActionReorder(ActionBase):
     task_ids: List[str]
 
+class BatchDeleteRequest(BaseModel):
+    ids: List[str]
+    confirm: bool = False
+
+class BatchDeleteRoomsRequest(BaseModel):
+    ids: List[str]
+
 class Room(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8].upper())
@@ -843,6 +850,88 @@ async def delete_room_admin(room_id: str):
     await sio.emit('room_deleted', {"room_id": room_id}, room=room_id)
     
     return {"status": "success"}
+
+@api_router.post("/admin/users/batch-delete")
+async def batch_delete_users(data: BatchDeleteRequest):
+    if db is None:
+        raise HTTPException(500, "Database connection not available")
+        
+    user_ids = data.ids
+    confirm = data.confirm
+    
+    if not user_ids:
+        return {"status": "success", "deleted_count": 0}
+        
+    # Verifica relações/dependências para o lote todo
+    owned_rooms_count = await db.rooms.count_documents({"owner_id": {"$in": user_ids}})
+    votes_count = await db.votes.count_documents({"user_id": {"$in": user_ids}})
+    memberships_count = await db.users.count_documents({"id": {"$in": user_ids}})
+    
+    has_relations = (owned_rooms_count > 0 or votes_count > 0 or memberships_count > 0)
+    
+    if has_relations and not confirm:
+        raise HTTPException(
+            status_code=400, 
+            detail="One or more selected users have active rooms, votes, or room memberships. Confirmation required."
+        )
+        
+    # Busca participações dos usuários para atualizar as salas em tempo real
+    user_memberships = await db.users.find({"id": {"$in": user_ids}}).to_list(None)
+    affected_rooms = {m["room_id"] for m in user_memberships}
+    
+    # Busca salas pertencentes a qualquer um desses usuários
+    owned_rooms = await db.rooms.find({"owner_id": {"$in": user_ids}}).to_list(None)
+    room_ids_to_delete = [r["id"] for r in owned_rooms]
+    
+    if room_ids_to_delete:
+        tasks = await db.tasks.find({"room_id": {"$in": room_ids_to_delete}}).to_list(None)
+        task_ids = [t["id"] for t in tasks]
+        if task_ids:
+            await db.votes.delete_many({"task_id": {"$in": task_ids}})
+        await db.tasks.delete_many({"room_id": {"$in": room_ids_to_delete}})
+        await db.users.delete_many({"room_id": {"$in": room_ids_to_delete}})
+        await db.rooms.delete_many({"id": {"$in": room_ids_to_delete}})
+        
+        # Emite socket para salas apagadas
+        for r_id in room_ids_to_delete:
+            await sio.emit('room_deleted', {"room_id": r_id}, room=r_id)
+            
+    # Exclui votos, participações e cadastros globais dos usuários
+    await db.votes.delete_many({"user_id": {"$in": user_ids}})
+    await db.users.delete_many({"id": {"$in": user_ids}})
+    await db.global_users.delete_many({"id": {"$in": user_ids}})
+    
+    # Broadcast para as salas remanescentes onde eles participavam
+    for r_id in affected_rooms:
+        if r_id not in room_ids_to_delete:
+            await broadcast_room_state(r_id)
+            
+    return {"status": "success", "deleted_count": len(user_ids)}
+
+@api_router.post("/admin/rooms/batch-delete")
+async def batch_delete_rooms(data: BatchDeleteRoomsRequest):
+    if db is None:
+        raise HTTPException(500, "Database connection not available")
+        
+    room_ids = [r.upper() for r in data.ids]
+    
+    if not room_ids:
+        return {"status": "success", "deleted_count": 0}
+        
+    tasks = await db.tasks.find({"room_id": {"$in": room_ids}}).to_list(None)
+    task_ids = [t["id"] for t in tasks]
+    if task_ids:
+        await db.votes.delete_many({"task_id": {"$in": task_ids}})
+        
+    await db.tasks.delete_many({"room_id": {"$in": room_ids}})
+    await db.users.delete_many({"room_id": {"$in": room_ids}})
+    await db.rooms.delete_many({"id": {"$in": room_ids}})
+    
+    # Emite socket para desconectar os clientes
+    for r_id in room_ids:
+        await sio.emit('room_deleted', {"room_id": r_id}, room=r_id)
+        
+    return {"status": "success", "deleted_count": len(room_ids)}
 
 # --- SOCKET EVENTS ---
 @sio.event
