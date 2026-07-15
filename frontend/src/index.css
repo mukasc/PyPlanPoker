@@ -292,3 +292,14 @@ code, .font-mono {
   background-color: rgba(229, 231, 235, 0.9) !important;
 }
 
+/* My Rooms Tabs Custom Styling */
+.my-rooms-tabs-list [data-state=active] {
+  color: #ffffff !important;
+}
+.theme-classic .my-rooms-tabs-list [data-state=active] {
+  background-color: #4f46e5 !important;
+}
+.theme-bms .my-rooms-tabs-list [data-state=active] {
+  background-color: #e28723 !important;
+}
+

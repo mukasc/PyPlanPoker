@@ -11,6 +11,7 @@ import { Toaster, toast } from '../components/ui/sonner';
 import { Users, Plus, LogIn, Eye, Sparkles, LogOut, List, Clock, ArrowRight } from 'lucide-react';
 import useGameStore from '../store/gameStore';
 import useAuthStore from '../store/authStore';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ const Landing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userRooms, setUserRooms] = useState([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [recentRooms, setRecentRooms] = useState([]);
+  const [isLoadingRecentRooms, setIsLoadingRecentRooms] = useState(false);
 
   useEffect(() => {
     if (mode === 'my-rooms' && globalUser?.id) {
@@ -42,7 +45,22 @@ const Landing = () => {
           setIsLoadingRooms(false);
         }
       };
+
+      const fetchRecentRooms = async () => {
+        setIsLoadingRecentRooms(true);
+        try {
+          const res = await api.get(`/api/recent-rooms/${globalUser.id}`);
+          setRecentRooms(res.data);
+        } catch (error) {
+          console.error(error);
+          toast.error('Failed to fetch recent rooms');
+        } finally {
+          setIsLoadingRecentRooms(false);
+        }
+      };
+
       fetchRooms();
+      fetchRecentRooms();
     }
   }, [mode, globalUser]);
 
@@ -213,78 +231,159 @@ const Landing = () => {
       <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-2xl shadow-black/50 relative z-10 overflow-hidden">
         {mode === 'my-rooms' ? (
            <div className="flex flex-col h-[450px]">
-             <CardHeader className="space-y-1 pb-4 border-b border-slate-800 shrink-0">
+             <CardHeader className="space-y-1 pb-3 border-b border-slate-800 shrink-0">
                <CardTitle className="text-xl text-slate-200 font-mono">My Rooms</CardTitle>
-               <CardDescription className="text-slate-400">Rooms you have created before</CardDescription>
+               <CardDescription className="text-slate-400">Rooms you have created or joined before</CardDescription>
              </CardHeader>
-             <CardContent className="p-0 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
-                {isLoadingRooms ? (
-                   <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                     <span className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
-                     Loading your rooms...
-                   </div>
-                ) : userRooms.length === 0 ? (
-                   <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-center px-6">
-                     <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-slate-700/50">
-                       <Plus className="w-8 h-8 text-slate-600" />
-                     </div>
-                     <p>You haven't created any rooms yet.</p>
-                     <Button variant="link" onClick={() => setMode('create')} className="text-indigo-400 mt-2">
-                       Create your first room
-                     </Button>
-                   </div>
-                ) : (
-                   <div className="divide-y divide-slate-800/50">
-                     {userRooms.map(room => {
-                       const date = new Date(room.created_at);
-                       const formattedDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
-                       return (
-                         <div 
-                           key={room.id} 
-                           onClick={async () => {
-                             // Pre-fill and automatically trigger join
-                             setRoomId(room.id);
-                             setIsLoading(true);
-                             try {
-                               const joinResponse = await api.post(`/api/rooms/${room.id}/join`, {
-                                 room_id: room.id,
-                                 name: displayName,
-                                 user_id: globalUser?.id,
-                                 picture: globalUser?.picture,
-                                 is_spectator: isSpectator,
-                               });
-                               setUser(joinResponse.data.user);
-                               setRoom(joinResponse.data.room);
-                               toast.success('Joined room!');
-                               navigate(`/room/${room.id}`);
-                             } catch (error) {
-                               console.error(error);
-                               toast.error('Failed to join room');
-                             } finally {
-                               setIsLoading(false);
-                             }
-                           }}
-                           className="flex flex-col p-4 hover:bg-slate-800/50 cursor-pointer transition-colors group"
-                         >
-                           <div className="flex items-center justify-between mb-1">
-                             <h3 className="text-slate-200 font-medium truncate pr-4">{room.name}</h3>
-                             <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 group-hover:bg-indigo-900/30 group-hover:text-indigo-300 group-hover:border-indigo-500/30 transition-colors">
-                               {room.id}
-                             </span>
-                           </div>
-                           <div className="flex items-center justify-between mt-2">
-                             <div className="flex items-center text-xs text-slate-500">
-                               <Clock className="w-3 h-3 mr-1" />
-                               {formattedDate}
-                             </div>
-                             <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors transform group-hover:translate-x-1" />
-                           </div>
-                         </div>
-                       );
-                     })}
-                   </div>
-                )}
-             </CardContent>
+             
+             <Tabs defaultValue="created" className="flex-1 flex flex-col min-h-0">
+               <TabsList className="my-rooms-tabs-list grid grid-cols-2 bg-slate-950 border-b border-slate-800 rounded-none p-1 shrink-0">
+                 <TabsTrigger value="created" className="text-slate-400 font-mono py-1.5 transition-colors">
+                   Created Rooms
+                 </TabsTrigger>
+                 <TabsTrigger value="recent" className="text-slate-400 font-mono py-1.5 transition-colors">
+                   Recent Rooms
+                 </TabsTrigger>
+               </TabsList>
+               
+               <TabsContent value="created" className="flex-1 overflow-y-auto overflow-x-hidden p-0 m-0 custom-scrollbar">
+                 {isLoadingRooms ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                      <span className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
+                      Loading your rooms...
+                    </div>
+                 ) : userRooms.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-slate-700/50">
+                        <Plus className="w-8 h-8 text-slate-600" />
+                      </div>
+                      <p>You haven't created any rooms yet.</p>
+                      <Button variant="link" onClick={() => setMode('create')} className="text-indigo-400 mt-2">
+                        Create your first room
+                      </Button>
+                    </div>
+                 ) : (
+                    <div className="divide-y divide-slate-800/50">
+                      {userRooms.map(room => {
+                        const date = new Date(room.created_at);
+                        const formattedDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+                        return (
+                          <div 
+                            key={room.id} 
+                            onClick={async () => {
+                              // Pre-fill and automatically trigger join
+                              setRoomId(room.id);
+                              setIsLoading(true);
+                              try {
+                                const joinResponse = await api.post(`/api/rooms/${room.id}/join`, {
+                                  room_id: room.id,
+                                  name: displayName,
+                                  user_id: globalUser?.id,
+                                  picture: globalUser?.picture,
+                                  is_spectator: isSpectator,
+                                });
+                                setUser(joinResponse.data.user);
+                                setRoom(joinResponse.data.room);
+                                toast.success('Joined room!');
+                                navigate(`/room/${room.id}`);
+                              } catch (error) {
+                                console.error(error);
+                                toast.error('Failed to join room');
+                              } finally {
+                                setIsLoading(false);
+                              }
+                            }}
+                            className="flex flex-col p-4 hover:bg-slate-800/50 cursor-pointer transition-colors group"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="text-slate-200 font-medium truncate pr-4">{room.name}</h3>
+                              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 group-hover:bg-indigo-900/30 group-hover:text-indigo-300 group-hover:border-indigo-500/30 transition-colors">
+                                {room.id}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center text-xs text-slate-500">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {formattedDate}
+                              </div>
+                              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors transform group-hover:translate-x-1" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                 )}
+               </TabsContent>
+               
+               <TabsContent value="recent" className="flex-1 overflow-y-auto overflow-x-hidden p-0 m-0 custom-scrollbar">
+                 {isLoadingRecentRooms ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                      <span className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
+                      Loading recent rooms...
+                    </div>
+                 ) : recentRooms.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-500 text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-slate-700/50">
+                        <Users className="w-8 h-8 text-slate-600" />
+                      </div>
+                      <p>You haven't joined any other rooms yet.</p>
+                      <Button variant="link" onClick={() => setMode('join')} className="text-indigo-400 mt-2">
+                        Join a room
+                      </Button>
+                    </div>
+                 ) : (
+                    <div className="divide-y divide-slate-800/50">
+                      {recentRooms.map(room => {
+                        const date = new Date(room.created_at);
+                        const formattedDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+                        return (
+                          <div 
+                            key={room.id} 
+                            onClick={async () => {
+                              // Pre-fill and automatically trigger join
+                              setRoomId(room.id);
+                              setIsLoading(true);
+                              try {
+                                const joinResponse = await api.post(`/api/rooms/${room.id}/join`, {
+                                  room_id: room.id,
+                                  name: displayName,
+                                  user_id: globalUser?.id,
+                                  picture: globalUser?.picture,
+                                  is_spectator: isSpectator,
+                                });
+                                setUser(joinResponse.data.user);
+                                setRoom(joinResponse.data.room);
+                                toast.success('Joined room!');
+                                navigate(`/room/${room.id}`);
+                              } catch (error) {
+                                console.error(error);
+                                toast.error('Failed to join room');
+                              } finally {
+                                setIsLoading(false);
+                              }
+                            }}
+                            className="flex flex-col p-4 hover:bg-slate-800/50 cursor-pointer transition-colors group"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="text-slate-200 font-medium truncate pr-4">{room.name}</h3>
+                              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 group-hover:bg-indigo-900/30 group-hover:text-indigo-300 group-hover:border-indigo-500/30 transition-colors">
+                                {room.id}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center text-xs text-slate-500">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {formattedDate}
+                              </div>
+                              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 transition-colors transform group-hover:translate-x-1" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                 )}
+               </TabsContent>
+             </Tabs>
            </div>
         ) : (
           <>

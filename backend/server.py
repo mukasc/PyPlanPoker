@@ -406,7 +406,8 @@ async def join_room_http(request: Request, room_id: str, input: UserJoin):
         "picture": input.picture,
         "is_admin": is_admin,
         "is_spectator": input.is_spectator,
-        "is_online": True
+        "is_online": True,
+        "joined_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.users.update_one(
@@ -425,6 +426,38 @@ async def get_user_rooms(user_id: str, current_user_id: str = Depends(get_curren
         raise HTTPException(403, "Access denied")
     if db is None: return []
     return await db.rooms.find({"owner_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+@api_router.get("/recent-rooms/{user_id}")
+async def get_recent_rooms(user_id: str, current_user_id: str = Depends(get_current_user)):
+    if user_id != current_user_id:
+        raise HTTPException(403, "Access denied")
+    if db is None: return []
+    
+    # Find all room memberships for the user
+    memberships = await db.users.find({"id": user_id}).to_list(100)
+    if not memberships:
+        return []
+        
+    # Map each room_id to its joined_at timestamp for sorting later
+    joined_at_map = {}
+    for mem in memberships:
+        # Fallback to an old epoch date if joined_at is missing for legacy data
+        joined_at_map[mem["room_id"]] = mem.get("joined_at", "1970-01-01T00:00:00Z")
+        
+    room_ids = list(joined_at_map.keys())
+    
+    # Fetch rooms corresponding to these IDs, excluding rooms owned by this user
+    rooms_cursor = db.rooms.find({
+        "id": {"$in": room_ids},
+        "owner_id": {"$ne": user_id}
+    }, {"_id": 0})
+    
+    rooms = await rooms_cursor.to_list(100)
+    
+    # Sort rooms by joined_at descending
+    rooms.sort(key=lambda r: joined_at_map.get(r["id"], ""), reverse=True)
+    
+    return rooms
 
 @api_router.get("/rooms/{room_id}/state")
 async def get_state_http(room_id: str):
