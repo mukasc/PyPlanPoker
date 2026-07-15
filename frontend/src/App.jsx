@@ -4,6 +4,7 @@ import Landing from "./pages/Landing";
 import Room from "./pages/Room";
 import Login from "./pages/Login";
 import useAuthStore from "./store/authStore";
+import useGameStore from "./store/gameStore";
 import { useEffect } from "react";
 import api from "./services/api";
 import BackendHealthCheck from "./components/BackendHealthCheck";
@@ -14,8 +15,37 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const { exp } = JSON.parse(jsonPayload);
+    if (!exp) return false;
+    return Date.now() >= exp * 1000;
+  } catch (error) {
+    return true;
+  }
+};
+
 function App() {
-  const { setGlobalUser, globalUser } = useAuthStore();
+  const { setGlobalUser, globalUser, logout } = useAuthStore();
+  const { leaveRoom } = useGameStore();
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token && isTokenExpired(token)) {
+      console.warn("Token is expired. Logging out...");
+      logout();
+      leaveRoom();
+    }
+  }, [logout, leaveRoom]);
 
   useEffect(() => {
     const theme = import.meta.env.VITE_THEME || 'classic';

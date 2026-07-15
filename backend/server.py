@@ -468,7 +468,7 @@ async def set_active_task_http(action: ActionActiveTask, current_user_id: str = 
 async def cast_vote_http(action: ActionVote, current_user_id: str = Depends(get_current_user)):
     if action.user_id != current_user_id:
         raise HTTPException(403, "User ID mismatch")
-    user = await db.users.find_one({"id": action.user_id})
+    user = await db.users.find_one({"id": action.user_id, "room_id": action.room_id})
     if not user or user.get("is_spectator"): raise HTTPException(403, "Cannot vote")
     
     await db.votes.delete_one({"task_id": action.task_id, "user_id": action.user_id})
@@ -510,7 +510,7 @@ async def complete_task_http(action: ActionComplete, current_user_id: str = Depe
     votes = await db.votes.find({"task_id": action.task_id}).to_list(100)
     votes_summary = []
     for v in votes:
-        v_user = await db.users.find_one({"id": v["user_id"]})
+        v_user = await db.users.find_one({"id": v["user_id"], "room_id": action.room_id})
         votes_summary.append({
             "name": v_user["name"] if v_user else "Unknown",
             "value": v["value"]
@@ -621,7 +621,7 @@ async def disconnect(sid):
         del socket_users[sid]
         
         if db is not None:
-            await db.users.update_one({"id": user_id}, {"$set": {"is_online": False}})
+            await db.users.update_one({"id": user_id, "room_id": room_id}, {"$set": {"is_online": False}})
             
             room = await db.rooms.find_one({"id": room_id})
             if room and room.get("active_task_id") and not room.get("cards_revealed"):
@@ -641,7 +641,7 @@ async def join_room(sid, data):
     await sio.enter_room(sid, room_id)
     socket_users[sid] = {"room_id": room_id, "user_id": user_id}
     if db is not None:
-        await db.users.update_one({"id": user_id}, {"$set": {"is_online": True}})
+        await db.users.update_one({"id": user_id, "room_id": room_id}, {"$set": {"is_online": True}})
         await broadcast_room_state(room_id)
 
 fastapi_app.include_router(api_router)

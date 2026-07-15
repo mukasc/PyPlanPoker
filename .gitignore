@@ -31,9 +31,10 @@ dist/
 dist
 
 # Environment files (comprehensive coverage)
-
 *token.json*
 *credentials.json*
+*.env
+*.env.*
 
 # Logs and debug files
 npm-debug.log*
@@ -41,6 +42,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dump.rdb
+docs/logs.txt
 
 # System files
 .DS_Store
@@ -79,7 +81,3 @@ agenthub/agents/youtube/db
 
 # Build caches
 .cache/
-
-# Mobile# Environment files
-*.env
-*.env.*
