@@ -72,24 +72,36 @@ const Room = () => {
 
   // Ref para rastrear qual era a tarefa ativa anterior (para saber quando mudou)
   const prevActiveTaskId = useRef(null);
+  const prevHasVoted = useRef(false);
 
-  // --- CORREÇÃO: Limpar Seleção Automática ---
+  // --- CORREÇÃO: Limpar Seleção Automática (Apenas em Reset ou Mudança de Tarefa) ---
   useEffect(() => {
     const currentActiveId = roomState.active_task?.id;
-    const isRevealed = roomState.room?.cards_revealed;
+    const userHasVoted = roomState.votes.some(v => v.user_id === user?.id);
 
     // Se mudou a tarefa ativa, limpa a seleção
     if (prevActiveTaskId.current !== currentActiveId) {
       setSelectedCard(null);
       prevActiveTaskId.current = currentActiveId;
+      prevHasVoted.current = false;
+    } else if (prevHasVoted.current && !userHasVoted) {
+      // Se o usuário já tinha votado no servidor, mas agora não está mais (reset)
+      setSelectedCard(null);
+      prevHasVoted.current = false;
+    } else {
+      prevHasVoted.current = userHasVoted;
     }
+  }, [roomState.active_task?.id, roomState.votes, setSelectedCard, user?.id]);
 
-    // Se as cartas foram escondidas (reset), limpa a seleção
-    // (A menos que eu ainda não tenha votado, mas aqui simplificamos limpando)
-    if (!isRevealed && selectedCard && user && !roomState.votes.find(v => v.user_id === user.id)) {
-       setSelectedCard(null);
+  // --- CORREÇÃO: Restaurar o voto selecionado ao carregar/atualizar a página ---
+  useEffect(() => {
+    if (user && roomState.votes.length > 0 && selectedCard === null) {
+      const myVote = roomState.votes.find(v => v.user_id === user.id);
+      if (myVote && myVote.value) {
+        setSelectedCard(myVote.value);
+      }
     }
-  }, [roomState, selectedCard, setSelectedCard, user?.id]);
+  }, [roomState.votes, user, selectedCard, setSelectedCard]);
 
   // Função centralizada para buscar estado
   const fetchState = useCallback(async () => {
@@ -133,13 +145,23 @@ const Room = () => {
 
   const handleVote = useCallback((value) => {
       if (!roomState.active_task) return;
-      setSelectedCard(value);
-      // CORREÇÃO: Convertemos para String() para satisfazer o Backend
-      handleAction('vote', { 
-        task_id: roomState.active_task.id, 
-        value: String(value) 
-      }, null);
-    }, [roomState.active_task, handleAction, setSelectedCard]);
+      
+      if (selectedCard === value) {
+        // Desmarcar voto (Unvote)
+        setSelectedCard(null);
+        handleAction('unvote', {
+          task_id: roomState.active_task.id
+        }, null);
+      } else {
+        // Votar/mudar voto
+        setSelectedCard(value);
+        // CORREÇÃO: Convertemos para String() para satisfazer o Backend
+        handleAction('vote', { 
+          task_id: roomState.active_task.id, 
+          value: String(value) 
+        }, null);
+      }
+    }, [roomState.active_task, handleAction, selectedCard, setSelectedCard]);
 
   const handleRevealCards = useCallback(() => {
     handleAction('reveal', {}, null);

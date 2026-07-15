@@ -110,6 +110,10 @@ class ActionActiveTask(ActionBase):
 class ActionVote(ActionBase):
     task_id: str
     value: str
+
+class ActionUnvote(ActionBase):
+    task_id: str
+
 class ActionReveal(ActionBase):
     pass
 
@@ -241,7 +245,7 @@ async def add_security_headers(request: Request, call_next):
 socket_users = {}
 
 # --- HELPER FUNCTIONS ---
-async def get_room_state(room_id: str, include_votes: bool = False) -> Dict[str, Any]:
+async def get_room_state(room_id: str, include_votes: bool = False, requesting_user_id: Optional[str] = None) -> Dict[str, Any]:
     room_id = room_id.upper() # Garantia Extra
     if db is None: return {}
     room = await db.rooms.find_one({"id": room_id}, {"_id": 0})
@@ -257,7 +261,15 @@ async def get_room_state(room_id: str, include_votes: bool = False) -> Dict[str,
     votes = []
     if active_task:
         raw_votes = await db.votes.find({"task_id": active_task["id"]}, {"_id": 0}).to_list(100)
-        votes = raw_votes if (room.get("cards_revealed") or include_votes) else [{"user_id": v["user_id"], "has_voted": True} for v in raw_votes]
+        if room.get("cards_revealed") or include_votes:
+            votes = raw_votes
+        else:
+            votes = []
+            for v in raw_votes:
+                if requesting_user_id and v["user_id"] == requesting_user_id:
+                    votes.append({"user_id": v["user_id"], "value": v["value"], "has_voted": True})
+                else:
+                    votes.append({"user_id": v["user_id"], "has_voted": True})
         voted_ids = {v["user_id"] for v in raw_votes}
         for user in users: user["has_voted"] = user["id"] in voted_ids
     
@@ -460,8 +472,17 @@ async def get_recent_rooms(user_id: str, current_user_id: str = Depends(get_curr
     return rooms
 
 @api_router.get("/rooms/{room_id}/state")
-async def get_state_http(room_id: str):
-    return await get_room_state(room_id.upper())
+async def get_state_http(room_id: str, request: Request):
+    requesting_user_id = None
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            requesting_user_id = payload.get("sub")
+        except JWTError:
+            pass
+    return await get_room_state(room_id.upper(), requesting_user_id=requesting_user_id)
 
 @api_router.post("/tasks", response_model=Task)
 async def create_task(input: TaskCreate, current_user_id: str = Depends(get_current_user)):
@@ -525,6 +546,17 @@ async def cast_vote_http(action: ActionVote, current_user_id: str = Depends(get_
         await sio.emit('reveal_votes', state, room=action.room_id)
     else:
         await broadcast_room_state(action.room_id)
+    return {"status": "success"}
+
+@api_router.post("/unvote")
+async def retract_vote_http(action: ActionUnvote, current_user_id: str = Depends(get_current_user)):
+    if action.user_id != current_user_id:
+        raise HTTPException(403, "User ID mismatch")
+    user = await db.users.find_one({"id": action.user_id, "room_id": action.room_id})
+    if not user or user.get("is_spectator"): raise HTTPException(403, "Cannot vote")
+    
+    await db.votes.delete_one({"task_id": action.task_id, "user_id": action.user_id})
+    await broadcast_room_state(action.room_id)
     return {"status": "success"}
 
 @api_router.post("/reveal")
