@@ -46,7 +46,7 @@ async def auth_google(request: Request, input: AuthGoogle):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.post("/guest")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def auth_guest(request: Request, input: GuestAuth):
     guest_id = f"guest-{str(uuid.uuid4())[:12]}"
     token = create_access_token(data={"sub": guest_id, "is_guest": True})
