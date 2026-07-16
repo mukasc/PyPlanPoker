@@ -61,8 +61,18 @@ Navegue para a pasta `backend`, crie um ambiente virtual e instale as dependênc
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/scripts/activate  # No Windows: venv\Scripts\activate
+source venv/bin/activate  # No Windows: venv\\Scripts\\activate
 pip install -r requirements.txt
+```
+
+#### Rodar o Servidor Backend (FastAPI)
+```bash
+# Na pasta backend, com o venv ativado:
+python -m app.main
+```
+Ou usando o uvicorn diretamente:
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 5000 --reload
 ```
 ### 3. Frontend Setup
 Navegue para a pasta `frontend` e instale as dependências:
@@ -84,6 +94,19 @@ npm run start
 ```
 O app estará disponível em `http://localhost:3000`.
 
+### 4. Usando Scripts de Inicialização Automática
+Para rodar tanto o backend quanto o frontend com um único comando, você pode usar os scripts na raiz do projeto:
+
+**No Windows (PowerShell):**
+```powershell
+.\start_local.ps1
+```
+
+**No Linux/macOS:**
+```bash
+./start_local.sh
+```
+
 ---
 
 ## 📂 Estrutura do Projeto
@@ -91,7 +114,11 @@ O app estará disponível em `http://localhost:3000`.
 ```text
 PyPlanPoker/
 ├── backend/            # FastAPI Server, Sockets e Lógica de DB
-│   ├── server.py       # Ponto de entrada principal
+│   ├── app/            # Código modular do backend
+│   │   ├── main.py     # Ponto de entrada
+│   │   ├── api/        # Rotas da API
+│   │   ├── services/   # Socket.IO e regras de negócio
+│   │   └── ...
 │   └── requirements.txt
 ├── frontend/           # Aplicação React
 │   ├── src/

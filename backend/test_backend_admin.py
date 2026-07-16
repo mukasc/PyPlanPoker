@@ -4,7 +4,13 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import server
+
+from app.main import fastapi_app
+from app.db.database import db_instance
+from app.services import socket
+from app.api.routers import auth, rooms, users, tasks, actions, admin
+from app.models import domain
+
 
 @pytest.mark.asyncio
 async def test_get_admin_users():
@@ -29,9 +35,9 @@ async def test_get_admin_users():
     mock_db.rooms.count_documents = AsyncMock(side_effect=lambda q: 1 if q.get("owner_id") == "google-1" else 0)
     mock_db.votes.count_documents = AsyncMock(side_effect=lambda q: 3 if q.get("user_id") == "guest-1" else 1)
     
-    server.db = mock_db
+    db_instance.db = mock_db
     
-    res = await server.get_admin_users()
+    res = await admin.get_admin_users()
     
     assert len(res) == 2
     
@@ -56,9 +62,9 @@ async def test_check_user_relations():
     mock_db.votes.count_documents = AsyncMock(return_value=5)
     mock_db.users.count_documents = AsyncMock(return_value=3)
     
-    server.db = mock_db
+    db_instance.db = mock_db
     
-    res = await server.check_user_relations("test-user-id")
+    res = await admin.check_user_relations("test-user-id")
     
     assert res["owned_rooms"] == 2
     assert res["votes"] == 5
@@ -94,12 +100,13 @@ async def test_delete_user_cascade():
     mock_db.rooms.delete_one = AsyncMock()
     mock_db.global_users.delete_one = AsyncMock()
     
-    server.db = mock_db
-    server.sio.emit = AsyncMock()
-    server.broadcast_room_state = AsyncMock()
+    db_instance.db = mock_db
+    socket.sio.emit = AsyncMock()
+    mock_broadcast = AsyncMock()
+    socket.broadcast_room_state = actions.broadcast_room_state = rooms.broadcast_room_state = admin.broadcast_room_state = users.broadcast_room_state = mock_broadcast
     
     # Call delete
-    res = await server.delete_user("user-1", confirm=True)
+    res = await admin.delete_user("user-1", confirm=True)
     
     assert res["status"] == "success"
     
@@ -117,10 +124,10 @@ async def test_delete_user_cascade():
     mock_db.global_users.delete_one.assert_called_with({"id": "user-1"})
     
     # Emitted socket event for room deleted
-    server.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_123"}, room="ROOM_123")
+    socket.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_123"}, room="ROOM_123")
     
     # Broadcast to other affected rooms
-    server.broadcast_room_state.assert_called_with("ROOM_OTHER")
+    mock_broadcast.assert_called_with("ROOM_OTHER")
 
 @pytest.mark.asyncio
 async def test_merge_users():
@@ -157,15 +164,16 @@ async def test_merge_users():
     mock_db.users.update_one = AsyncMock()
     mock_db.global_users.delete_one = AsyncMock()
     
-    server.db = mock_db
-    server.broadcast_room_state = AsyncMock()
+    db_instance.db = mock_db
+    mock_broadcast = AsyncMock()
+    socket.broadcast_room_state = actions.broadcast_room_state = rooms.broadcast_room_state = admin.broadcast_room_state = users.broadcast_room_state = mock_broadcast
     
     data = {
         "target_id": "google-1",
         "source_ids": ["guest-1"]
     }
     
-    res = await server.merge_users(data)
+    res = await admin.merge_users(data)
     
     assert res["status"] == "success"
     assert res["merged_count"] == 1
@@ -188,8 +196,8 @@ async def test_merge_users():
     mock_db.global_users.delete_one.assert_called_with({"id": "guest-1"})
     
     # Broadcast to affected rooms
-    server.broadcast_room_state.assert_any_call("ROOM_A")
-    server.broadcast_room_state.assert_any_call("ROOM_B")
+    mock_broadcast.assert_any_call("ROOM_A")
+    mock_broadcast.assert_any_call("ROOM_B")
 
 @pytest.mark.asyncio
 async def test_batch_delete_users():
@@ -222,12 +230,13 @@ async def test_batch_delete_users():
     mock_db.rooms.delete_many = AsyncMock()
     mock_db.global_users.delete_many = AsyncMock()
     
-    server.db = mock_db
-    server.sio.emit = AsyncMock()
-    server.broadcast_room_state = AsyncMock()
+    db_instance.db = mock_db
+    socket.sio.emit = AsyncMock()
+    mock_broadcast = AsyncMock()
+    socket.broadcast_room_state = actions.broadcast_room_state = rooms.broadcast_room_state = admin.broadcast_room_state = users.broadcast_room_state = mock_broadcast
     
-    req = server.BatchDeleteRequest(ids=["user-1", "user-2"], confirm=True)
-    res = await server.batch_delete_users(req)
+    req = domain.BatchDeleteRequest(ids=["user-1", "user-2"], confirm=True)
+    res = await admin.batch_delete_users(req)
     
     assert res["status"] == "success"
     assert res["deleted_count"] == 2
@@ -246,7 +255,7 @@ async def test_batch_delete_users():
     mock_db.global_users.delete_many.assert_any_call({"id": {"$in": ["user-1", "user-2"]}})
     
     # Broadcast to remaining affected rooms
-    server.broadcast_room_state.assert_called_with("ROOM_3")
+    mock_broadcast.assert_called_with("ROOM_3")
 
 @pytest.mark.asyncio
 async def test_batch_delete_rooms():
@@ -262,11 +271,11 @@ async def test_batch_delete_rooms():
     mock_db.users.delete_many = AsyncMock()
     mock_db.rooms.delete_many = AsyncMock()
     
-    server.db = mock_db
-    server.sio.emit = AsyncMock()
+    db_instance.db = mock_db
+    socket.sio.emit = AsyncMock()
     
-    req = server.BatchDeleteRoomsRequest(ids=["ROOM_A", "ROOM_B"])
-    res = await server.batch_delete_rooms(req)
+    req = domain.BatchDeleteRoomsRequest(ids=["ROOM_A", "ROOM_B"])
+    res = await admin.batch_delete_rooms(req)
     
     assert res["status"] == "success"
     assert res["deleted_count"] == 2
@@ -278,5 +287,5 @@ async def test_batch_delete_rooms():
     mock_db.rooms.delete_many.assert_called_with({"id": {"$in": ["ROOM_A", "ROOM_B"]}})
     
     # Socket emits
-    server.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_A"}, room="ROOM_A")
-    server.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_B"}, room="ROOM_B")
+    socket.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_A"}, room="ROOM_A")
+    socket.sio.emit.assert_any_call('room_deleted', {"room_id": "ROOM_B"}, room="ROOM_B")

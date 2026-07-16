@@ -7,20 +7,26 @@ from fastapi import HTTPException
 # Add backend dir to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import server
+
+from app.main import fastapi_app
+from app.db.database import db_instance
+from app.services import socket
+from app.api.routers import auth, rooms, users, tasks, actions, admin
+from app.models import domain
+
 
 @pytest.mark.asyncio
 async def test_get_recent_rooms_auth():
     """Verify that get_recent_rooms raises 403 if current_user_id doesn't match user_id."""
     with pytest.raises(HTTPException) as exc_info:
-        await server.get_recent_rooms("user-1", current_user_id="user-2")
+        await users.get_recent_rooms("user-1", current_user_id="user-2")
     assert exc_info.value.status_code == 403
 
 @pytest.mark.asyncio
 async def test_get_recent_rooms_db_not_connected():
     """Verify that get_recent_rooms returns empty list if db is not connected."""
-    server.db = None
-    rooms = await server.get_recent_rooms("user-1", current_user_id="user-1")
+    db_instance.db = None
+    rooms = await users.get_recent_rooms("user-1", current_user_id="user-1")
     assert rooms == []
 
 @pytest.mark.asyncio
@@ -31,9 +37,9 @@ async def test_get_recent_rooms_no_memberships():
     # No memberships
     mock_users.find.return_value.to_list = AsyncMock(return_value=[])
     mock_db.users = mock_users
-    server.db = mock_db
+    db_instance.db = mock_db
     
-    rooms = await server.get_recent_rooms("user-1", current_user_id="user-1")
+    rooms = await users.get_recent_rooms("user-1", current_user_id="user-1")
     assert rooms == []
 
 @pytest.mark.asyncio
@@ -63,9 +69,9 @@ async def test_get_recent_rooms_success():
     mock_rooms.find.return_value.to_list = AsyncMock(return_value=rooms)
     mock_db.rooms = mock_rooms
     
-    server.db = mock_db
+    db_instance.db = mock_db
     
-    result = await server.get_recent_rooms("user-1", current_user_id="user-1")
+    result = await users.get_recent_rooms("user-1", current_user_id="user-1")
     
     # Assert find called with correct filter excluding owner_id="user-1"
     mock_db.rooms.find.assert_called_once()
@@ -89,7 +95,7 @@ async def test_join_room_sets_joined_at():
     mock_db.users.update_one = AsyncMock()
     mock_db.users.find_one = AsyncMock(return_value={"id": "user-1", "room_id": "ROOM_XYZ", "name": "Test User"})
     
-    server.db = mock_db
+    db_instance.db = mock_db
     
     from fastapi import Request
     scope = {
@@ -97,12 +103,12 @@ async def test_join_room_sets_joined_at():
         "method": "POST",
         "path": "/api/rooms/ROOM_XYZ/join",
         "headers": [],
-        "app": server.fastapi_app,
+        "app": fastapi_app,
         "client": ("127.0.0.1", 12345)
     }
     mock_request = Request(scope)
     
-    user_join = server.UserJoin(
+    user_join = domain.UserJoin(
         room_id="ROOM_XYZ",
         name="Test User",
         user_id="user-1",
@@ -110,7 +116,7 @@ async def test_join_room_sets_joined_at():
         is_spectator=False
     )
     
-    await server.join_room_http(mock_request, "ROOM_XYZ", user_join)
+    await rooms.join_room_http(mock_request, "ROOM_XYZ", user_join)
     
     # Assert update_one was called and set joined_at
     mock_db.users.update_one.assert_called_once()

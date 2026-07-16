@@ -7,7 +7,13 @@ from fastapi import HTTPException
 # Add backend dir to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import server
+
+from app.main import fastapi_app
+from app.db.database import db_instance
+from app.services import socket
+from app.api.routers import auth, rooms, users, tasks, actions, admin
+from app.models import domain
+
 
 @pytest.mark.asyncio
 async def test_unvote_success():
@@ -21,31 +27,32 @@ async def test_unvote_success():
     mock_votes.delete_one = AsyncMock()
     mock_db.votes = mock_votes
     
-    server.db = mock_db
-    server.broadcast_room_state = AsyncMock()
+    db_instance.db = mock_db
+    mock_broadcast = AsyncMock()
+    socket.broadcast_room_state = actions.broadcast_room_state = rooms.broadcast_room_state = admin.broadcast_room_state = users.broadcast_room_state = mock_broadcast
     
-    action = server.ActionUnvote(
+    action = domain.ActionUnvote(
         room_id="ROOM_XYZ",
         user_id="user-1",
         task_id="task-1"
     )
     
-    response = await server.retract_vote_http(action, current_user_id="user-1")
+    response = await actions.retract_vote_http(action, current_user_id="user-1")
     assert response == {"status": "success"}
     mock_votes.delete_one.assert_called_once_with({"task_id": "task-1", "user_id": "user-1"})
-    server.broadcast_room_state.assert_called_once_with("ROOM_XYZ")
+    mock_broadcast.assert_called_once_with("ROOM_XYZ")
 
 @pytest.mark.asyncio
 async def test_unvote_user_mismatch():
     """Verify that unvote route raises 403 on user ID mismatch."""
-    action = server.ActionUnvote(
+    action = domain.ActionUnvote(
         room_id="ROOM_XYZ",
         user_id="user-1",
         task_id="task-1"
     )
     
     with pytest.raises(HTTPException) as exc_info:
-        await server.retract_vote_http(action, current_user_id="user-2")
+        await actions.retract_vote_http(action, current_user_id="user-2")
     assert exc_info.value.status_code == 403
 
 @pytest.mark.asyncio
@@ -80,10 +87,10 @@ async def test_get_room_state_exposes_own_vote():
     mock_votes.find.return_value.to_list = AsyncMock(return_value=votes)
     mock_db.votes = mock_votes
     
-    server.db = mock_db
+    db_instance.db = mock_db
     
     # Call get_room_state for user-1
-    state = await server.get_room_state("ROOM_XYZ", requesting_user_id="user-1")
+    state = await socket.get_room_state("ROOM_XYZ", requesting_user_id="user-1")
     
     # Assertions
     returned_votes = state["votes"]
