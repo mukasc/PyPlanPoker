@@ -11,12 +11,7 @@ logger = logging.getLogger(__name__)
 
 sio = socketio.AsyncServer(
     async_mode='asgi', 
-    cors_allowed_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://pyplanpoker.vercel.app",
-        "https://pyplanpoker-frontend.vercel.app"
-    ],
+    cors_allowed_origins=settings.ALLOWED_ORIGINS,
     cors_credentials=True,
     logger=True, 
     engineio_logger=True, 
