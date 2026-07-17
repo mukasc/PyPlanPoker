@@ -1,22 +1,26 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, subscribeWithSelector } from 'zustand/middleware';
 
 const useAuthStore = create(
-  persist(
-    (set) => ({
-      globalUser: null,
-      isBackendReady: false,
-      
-      setGlobalUser: (user) => set({ globalUser: user }),
-      setBackendReady: (isReady) => set({ isBackendReady: isReady }),
-      logout: () => {
-        localStorage.removeItem('access_token');
-        set({ globalUser: null });
-      },
-    }),
-    {
-      name: 'pyplanpoker-auth-storage',
-    }
+  subscribeWithSelector(
+    persist(
+      (set) => ({
+        // --- State ---
+        globalUser: null,
+        isBackendReady: false,
+        
+        // --- Actions ---
+        setGlobalUser: (user) => set({ globalUser: user }),
+        setBackendReady: (isReady) => set({ isBackendReady: isReady }),
+        logout: () => {
+          localStorage.removeItem('access_token');
+          set({ globalUser: null });
+        },
+      }),
+      {
+        name: 'pyplanpoker-auth-storage',
+      }
+    )
   )
 );
 

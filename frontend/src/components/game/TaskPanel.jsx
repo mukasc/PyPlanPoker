@@ -63,10 +63,10 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
         isActive 
           ? "bg-emerald-600/10 border-emerald-500/50" 
           : isCompleted
-            ? "bg-slate-800/30 border-slate-800 opacity-75"
+            ? "bg-accent/30 border-border opacity-75"
             : isCancelled
-              ? "bg-slate-900/30 border-slate-800 opacity-60"
-              : "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800"
+              ? "bg-card/30 border-border opacity-60"
+              : "bg-accent/50 border-border/50 hover:bg-accent"
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -75,7 +75,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
             <div 
               {...attributes} 
               {...listeners}
-              className="mt-1 cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 transition-colors"
+              className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-muted-foreground transition-colors"
               title="Drag to reorder"
             >
               <GripVertical className="w-4 h-4" />
@@ -85,12 +85,12 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
           <div className="flex-1 min-w-0">
             <h4 className={cn(
               "font-medium truncate",
-              (isCompleted || isCancelled) ? "text-slate-400 line-through" : "text-slate-200"
+              (isCompleted || isCancelled) ? "text-muted-foreground line-through" : "text-foreground"
             )}>
               {task.title}
             </h4>
             {task.description && (
-              <p className="text-sm text-slate-500 mt-1 line-clamp-2">
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                 {task.description}
               </p>
             )}
@@ -104,15 +104,15 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
                   </span>
                   
                   {task.votes_summary && task.votes_summary.length > 0 && (
-                    <div className="absolute bottom-full mb-2 left-0 w-max max-w-xs bg-slate-900 border border-slate-700 p-2 rounded shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-1 border-b border-slate-800 pb-1">
+                    <div className="absolute bottom-full mb-2 left-0 w-max max-w-xs bg-card border border-border p-2 rounded shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter mb-1 border-b border-border pb-1">
                         Individual Votes
                       </p>
                       <div className="space-y-1">
                         {task.votes_summary.map((v, i) => (
                           <div key={i} className="flex justify-between gap-4 text-xs font-mono">
-                            <span className="text-slate-400 truncate max-w-[100px]">{v.name}:</span>
-                            <span className="text-indigo-400 font-bold">{v.value}</span>
+                            <span className="text-muted-foreground truncate max-w-[100px]">{v.name}:</span>
+                            <span className="text-primary font-bold">{v.value}</span>
                           </div>
                         ))}
                       </div>
@@ -124,7 +124,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
             )}
             {isCancelled && (
               <div className="mt-2">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-800 text-slate-500 border border-slate-700 rounded text-xs">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent text-muted-foreground border border-border rounded text-xs">
                   <Ban className="w-3 h-3" />
                   Cancelled
                 </span>
@@ -149,7 +149,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
                   }
                 }}
                 title={isCompleted || isCancelled ? "Reopen Task" : "Start Voting"}
-                className="text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/20"
+                className="text-muted-foreground hover:text-emerald-400 hover:bg-emerald-900/20"
               >
                 {isCompleted || isCancelled ? <RotateCcw className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               </Button>
@@ -161,7 +161,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
                 variant="ghost"
                 onClick={() => setCompletingTaskId(task.id)}
                 title="Complete Voting"
-                className="text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/20"
+                className="text-muted-foreground hover:text-emerald-400 hover:bg-emerald-900/20"
               >
                 <Check className="w-4 h-4" />
               </Button>
@@ -173,7 +173,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
                 variant="ghost"
                 onClick={() => onCancel(task.id)}
                 title="Cancel Task"
-                className="text-slate-400 hover:text-amber-400 hover:bg-amber-900/20"
+                className="text-muted-foreground hover:text-amber-400 hover:bg-amber-900/20"
               >
                 <Ban className="w-4 h-4" />
               </Button>
@@ -184,7 +184,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
               variant="ghost"
               onClick={() => onDelete(task.id)}
               title="Delete Permanently"
-              className="text-slate-400 hover:text-rose-400 hover:bg-rose-900/20"
+              className="text-muted-foreground hover:text-rose-400 hover:bg-rose-900/20"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -193,23 +193,32 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
       </div>
 
       {isCompleting && (
-        <div className="mt-4 pt-4 border-t border-slate-700 animate-in slide-in-from-top-2">
-          <p className="text-sm text-slate-400 mb-3 font-semibold">Select final team score:</p>
+        <div className="mt-4 pt-4 border-t border-border animate-in slide-in-from-top-2">
+          <p className="text-sm text-muted-foreground mb-3 font-semibold">Select final team score:</p>
           <div className="flex flex-wrap gap-2 mb-3">
             {deckValues.map((val) => (
               <button
                 key={String(val)}
                 onClick={() => setSelectedScore(String(val))}
                 className={cn(
-                  "w-9 h-9 rounded shadow-sm font-mono font-bold text-sm transition-all",
+                  "px-3 h-9 min-w-[2.25rem] rounded shadow-sm font-mono font-bold text-sm transition-all border",
                   selectedScore === String(val)
-                    ? "bg-emerald-500 text-white ring-2 ring-emerald-300 ring-offset-2 ring-offset-slate-900 scale-110"
-                    : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                    ? "bg-primary text-primary-foreground border-primary ring-2 ring-primary/30 ring-offset-1 ring-offset-background scale-105"
+                    : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"
                 )}
               >
                 {val}
               </button>
             ))}
+          </div>
+          <div className="mb-4">
+            <Input 
+              placeholder="Or type a custom score (max 25 chars)"
+              maxLength={25}
+              value={selectedScore || ''}
+              onChange={(e) => setSelectedScore(e.target.value)}
+              className="bg-background border-border text-foreground font-mono text-sm"
+            />
           </div>
           <div className="flex gap-2 justify-end">
             <Button
@@ -219,7 +228,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
                 setCompletingTaskId(null);
                 setSelectedScore(null);
               }}
-              className="text-slate-400 hover:text-white"
+              className="text-muted-foreground hover:text-primary-foreground"
             >
               Cancel
             </Button>
@@ -227,7 +236,7 @@ const SortableTaskItem = ({ task, activeTaskId, completingTaskId, isAdmin, deckV
               size="sm"
               onClick={() => handleCompleteInternal(task.id)}
               disabled={selectedScore === null}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white"
+              className="bg-emerald-600 hover:bg-emerald-500 text-primary-foreground"
             >
               Confirm Score
             </Button>
@@ -308,15 +317,15 @@ const TaskPanel = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-end">
-      <div className="h-full w-full max-w-md bg-slate-950 border-l border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="h-full w-full max-w-md bg-background border-l border-border shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         
-        <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-900/50">
-          <h2 className="text-xl font-bold text-slate-200 font-mono tracking-tight">Task Backlog</h2>
+        <div className="flex items-center justify-between p-6 border-b border-border bg-card/50">
+          <h2 className="text-xl font-bold text-foreground font-mono tracking-tight">Task Backlog</h2>
           <Button
             size="icon"
             variant="ghost"
             onClick={onClose}
-            className="text-slate-400 hover:text-white hover:bg-slate-800"
+            className="text-muted-foreground hover:text-primary-foreground hover:bg-accent"
           >
             <X className="w-5 h-5" />
           </Button>
@@ -352,7 +361,7 @@ const TaskPanel = ({
 
           {pendingTasks.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
                 Up Next ({pendingTasks.length})
                 {isAdmin && <span className="ml-2 lowercase font-normal opacity-50">(drag to reorder)</span>}
               </h3>
@@ -389,7 +398,7 @@ const TaskPanel = ({
 
           {completedTasks.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
                 Done ({completedTasks.length})
               </h3>
               <div className="space-y-2 opacity-90">
@@ -414,7 +423,7 @@ const TaskPanel = ({
 
           {cancelledTasks.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 pl-1">
                 Cancelled
               </h3>
               <div className="space-y-2 opacity-80">
@@ -439,41 +448,41 @@ const TaskPanel = ({
 
           {localTasks.length === 0 && (
             <div className="text-center py-20 flex flex-col items-center">
-              <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-4 border border-slate-800">
+              <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center mb-4 border border-border">
                 <Plus className="w-8 h-8 text-slate-700" />
               </div>
-              <p className="text-slate-400 font-medium">Your backlog is empty</p>
-              <p className="text-sm text-slate-600 mt-1">Create a task to get started</p>
+              <p className="text-muted-foreground font-medium">Your backlog is empty</p>
+              <p className="text-sm text-muted-foreground mt-1">Create a task to get started</p>
             </div>
           )}
         </div>
 
         {isAdmin && (
-          <div className="border-t border-slate-800 p-4 bg-slate-900/50">
+          <div className="border-t border-border p-4 bg-card/50">
             {showAddForm ? (
-              <div className="space-y-3 bg-slate-900 p-3 rounded-lg border border-slate-800 animate-in zoom-in-95">
+              <div className="space-y-3 bg-card p-3 rounded-lg border border-border animate-in zoom-in-95">
                 <Input
                   placeholder="Task title (e.g. USER-101 Login)"
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="bg-slate-950 border-slate-700 text-slate-200"
+                  className="bg-background border-border text-foreground"
                   autoFocus
                 />
                 <Input
                   placeholder="Description (optional)"
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
-                  className="bg-slate-950 border-slate-700 text-slate-200"
+                  className="bg-background border-border text-foreground"
                 />
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={() => setShowAddForm(false)} className="flex-1 text-slate-400">Cancel</Button>
-                  <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white">Add Task</Button>
+                  <Button variant="ghost" onClick={() => setShowAddForm(false)} className="flex-1 text-muted-foreground">Cancel</Button>
+                  <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">Add Task</Button>
                 </div>
               </div>
             ) : (
               <Button
                 onClick={() => setShowAddForm(true)}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-sm"
+                className="w-full bg-accent hover:bg-accent text-foreground border border-border shadow-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add New Task

@@ -9,8 +9,8 @@ const PokerCard = ({ value, faceUp, hasVoted, isCurrentUser }) => {
         faceUp 
           ? "bg-slate-100 border-2 border-slate-300 rotate-0" 
           : hasVoted
-            ? "bg-gradient-to-br from-indigo-600 to-violet-700 border-2 border-indigo-400/30"
-            : "bg-slate-800 border-2 border-slate-700",
+            ? "bg-gradient-to-br from-primary to-primary/70 border-2 border-indigo-400/30"
+            : "bg-accent border-2 border-border",
         isCurrentUser && hasVoted && !faceUp && "ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-slate-950"
       )}
       style={{

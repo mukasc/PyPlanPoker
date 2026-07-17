@@ -49,24 +49,24 @@ code, .font-mono {
   }
 
   .theme-bms, .light {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --background: 210 40% 98%; /* #f9fafb */
+    --foreground: 215 28% 17%; /* #1f2937 */
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 215 28% 17%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
+    --popover-foreground: 215 28% 17%;
     --primary: 31 77% 51%; /* BMS Orange #e28723 */
     --primary-foreground: 0 0% 100%;
     --secondary: 220 14.3% 95.9%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 31 77% 95%;
-    --accent-foreground: 31 77% 51%;
+    --muted-foreground: 215 16% 47%; /* #6b7280 */
+    --accent: 210 40% 96.1%; /* #f3f4f6 */
+    --accent-foreground: 215 28% 17%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 220 13% 91%; /* #e5e7eb */
+    --input: 220 13% 91%;
     --ring: 31 77% 51%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -110,196 +110,14 @@ code, .font-mono {
   animation: consensus-pulse 3s infinite ease-in-out !important;
 }
 
-/* BMS Light Theme overrides for hardcoded tailwind slate/indigo classes */
-.theme-bms .bg-slate-950,
-.theme-bms.bg-slate-950 {
-  background-color: #f9fafb !important;
-}
-
-.theme-bms .bg-slate-900,
-.theme-bms.bg-slate-900 {
-  background-color: #ffffff !important;
-}
-
-.theme-bms .bg-slate-900\/50 {
-  background-color: rgba(255, 255, 255, 0.5) !important;
-}
-
-.theme-bms .bg-slate-900\/80 {
-  background-color: rgba(255, 255, 255, 0.8) !important;
-}
-
-.theme-bms .bg-slate-950\/50 {
-  background-color: rgba(249, 250, 251, 0.5) !important;
-}
-
-.theme-bms .bg-slate-800,
-.theme-bms .bg-slate-800\/50,
-.theme-bms .bg-slate-800\/70,
-.theme-bms .bg-slate-800\/30 {
-  background-color: #f3f4f6 !important;
-}
-
-.theme-bms .bg-slate-800\/30 {
-  background-color: rgba(243, 244, 246, 0.3) !important;
-}
-
-.theme-bms .bg-slate-800\/50 {
-  background-color: rgba(243, 244, 246, 0.5) !important;
-}
-
-.theme-bms .hover\:bg-slate-800:hover,
-.theme-bms .hover\:bg-slate-800\/50:hover,
-.theme-bms .hover\:bg-slate-800\/70:hover {
-  background-color: #e5e7eb !important;
-}
-
-.theme-bms .border-slate-800,
-.theme-bms .border-slate-750,
-.theme-bms .border-slate-700,
-.theme-bms .border-slate-700\/50 {
-  border-color: #e5e7eb !important;
-}
-
-.theme-bms .text-slate-200 {
-  color: #1f2937 !important;
-}
-
-.theme-bms .text-slate-300 {
-  color: #374151 !important;
-}
-
-.theme-bms .text-slate-400 {
-  color: #6b7280 !important;
-}
-
-.theme-bms .text-slate-500 {
-  color: #9ca3af !important;
-}
-
-.theme-bms .text-slate-600 {
-  color: #d1d5db !important;
-}
-
-.theme-bms .hover\:text-white:hover {
-  color: #111827 !important;
-}
-
-/* Accent (indigo) class overrides to BMS Orange */
-.theme-bms .bg-indigo-600 {
-  background-color: #e28723 !important;
-}
-
-.theme-bms .bg-indigo-600\/20 {
-  background-color: rgba(226, 135, 35, 0.2) !important;
-}
-
-.theme-bms .bg-indigo-600\/80 {
-  background-color: rgba(226, 135, 35, 0.8) !important;
-}
-
-.theme-bms .hover\:bg-indigo-500:hover {
-  background-color: #ca7114 !important;
-}
-
-.theme-bms .text-indigo-400 {
-  color: #e28723 !important;
-}
-
-.theme-bms .border-indigo-500\/30 {
-  border-color: rgba(226, 135, 35, 0.3) !important;
-}
-
-.theme-bms .text-indigo-300 {
-  color: #e28723 !important;
-}
-
-.theme-bms .group-hover\:text-indigo-300:hover {
-  color: #e28723 !important;
-}
-
-.theme-bms .group-hover\:border-indigo-500\/30:hover {
-  border-color: rgba(226, 135, 35, 0.3) !important;
-}
-
-.theme-bms .focus\:border-indigo-500:focus {
-  border-color: #e28723 !important;
-}
-
-.theme-bms .focus\:ring-indigo-500:focus {
-  --tw-ring-color: #e28723 !important;
-  border-color: #e28723 !important;
-}
-
-.theme-bms .bg-gradient-to-br.from-indigo-600.to-violet-700 {
-  background-image: linear-gradient(to bottom right, #e28723, #b86510) !important;
-}
-
-.theme-bms .from-indigo-600 {
-  --tw-gradient-from: #e28723 !important;
-  --tw-gradient-to: #b86510 !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-}
-
-.theme-bms .to-violet-700 {
-  --tw-gradient-to: #b86510 !important;
-}
-
-.theme-bms .text-indigo-400.font-mono {
-  color: #e28723 !important;
-}
-
-/* Background glows adjustment for light theme */
-.theme-bms .bg-emerald-500\/10 {
-  background-color: rgba(226, 135, 35, 0.05) !important;
-}
-
-.theme-bms .bg-indigo-500\/10 {
-  background-color: rgba(226, 135, 35, 0.05) !important;
-}
-
-/* Custom scrollbar override for bms (light) theme */
-.theme-bms ::-webkit-scrollbar-track {
-  background: #f3f4f6 !important;
-}
-
-.theme-bms ::-webkit-scrollbar-thumb {
-  background: #d1d5db !important;
-}
-
-.theme-bms ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af !important;
-}
-
-/* BMS Light Theme overrides for PokerTable and components */
-.theme-bms .bg-slate-900\/80 {
-  background-color: rgba(243, 244, 246, 0.9) !important;
-}
-
-.theme-bms .border-slate-700\/50 {
-  border-color: #d1d5db !important;
-}
-
-.theme-bms .bg-gradient-to-br.from-slate-800\/50.to-slate-900\/50 {
-  background-image: linear-gradient(to bottom right, #f9fafb, #f3f4f6) !important;
-}
-
-.theme-bms .border-slate-700\/30 {
-  border-color: #e5e7eb !important;
-}
-
-.theme-bms .bg-slate-800\/90 {
-  background-color: rgba(229, 231, 235, 0.9) !important;
-}
-
 /* My Rooms Tabs Custom Styling */
 .my-rooms-tabs-list [data-state=active] {
   color: #ffffff !important;
 }
 .theme-classic .my-rooms-tabs-list [data-state=active] {
-  background-color: #4f46e5 !important;
+  background-color: hsl(var(--primary)) !important;
 }
 .theme-bms .my-rooms-tabs-list [data-state=active] {
-  background-color: #e28723 !important;
+  background-color: hsl(var(--primary)) !important;
 }
 

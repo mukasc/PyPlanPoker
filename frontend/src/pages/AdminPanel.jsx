@@ -318,21 +318,21 @@ export default function AdminPanel() {
   const allFilteredRoomsSelected = filteredRooms.length > 0 && filteredRooms.every(r => selectedRoomIds.includes(r.id));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans antialiased">
       <Toaster position="top-center" theme="dark" richColors />
       
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-30">
+      <header className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+            <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-primary-foreground shadow-lg shadow-indigo-500/20">
               <Users className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                 Painel Administrativo
               </h1>
-              <p className="text-xs text-slate-400">PyPlanPoker Truth & State Engine</p>
+              <p className="text-xs text-muted-foreground">PyPlanPoker Truth & State Engine</p>
             </div>
           </div>
           
@@ -340,14 +340,14 @@ export default function AdminPanel() {
             <button
               onClick={() => fetchData(true)}
               disabled={refreshing || loading}
-              className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition disabled:opacity-50"
+              className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-primary-foreground transition disabled:opacity-50"
               title="Recarregar dados"
             >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? "animate-spin text-indigo-400" : ""}`} />
+              <RefreshCw className={`w-5 h-5 ${refreshing ? "animate-spin text-primary" : ""}`} />
             </button>
             <button
               onClick={() => navigate("/")}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg transition text-sm font-medium flex items-center gap-2"
+              className="px-4 py-2 bg-accent hover:bg-accent text-foreground hover:text-primary-foreground rounded-lg transition text-sm font-medium flex items-center gap-2"
             >
               Voltar ao Poker
             </button>
@@ -358,13 +358,13 @@ export default function AdminPanel() {
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full pb-28">
         {/* Tabs Selectors */}
-        <div className="flex border-b border-slate-800 mb-8 gap-6">
+        <div className="flex border-b border-border mb-8 gap-6">
           <button
             onClick={() => { setActiveTab("users"); setSelectedRoomIds([]); }}
             className={`pb-4 px-2 text-sm font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 relative -bottom-[2px] ${
               activeTab === "users"
-                ? "border-indigo-500 text-indigo-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Users className="w-4 h-4" />
@@ -375,8 +375,8 @@ export default function AdminPanel() {
             onClick={() => { setActiveTab("rooms"); setSelectedUserIds([]); }}
             className={`pb-4 px-2 text-sm font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 relative -bottom-[2px] ${
               activeTab === "rooms"
-                ? "border-indigo-500 text-indigo-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Home className="w-4 h-4" />
@@ -385,7 +385,7 @@ export default function AdminPanel() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <RefreshCw className="w-10 h-10 animate-spin text-indigo-500 mb-4" />
             <p className="text-sm font-mono">Buscando banco de dados...</p>
           </div>
@@ -396,17 +396,17 @@ export default function AdminPanel() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
                 {/* Lista de Usuários */}
-                <div className="lg:col-span-8 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
+                <div className="lg:col-span-8 bg-card/40 border border-border/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <h3 className="text-lg font-bold">Gerenciamento de Usuários</h3>
                     <div className="relative w-full sm:w-72">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input
                         type="text"
                         placeholder="Buscar por nome, ID ou email..."
                         value={searchUser}
                         onChange={(e) => setSearchUser(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                        className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-xl text-sm placeholder-slate-500 focus:outline-none focus:border-primary transition"
                       />
                     </div>
                   </div>
@@ -414,13 +414,13 @@ export default function AdminPanel() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-800 text-slate-400 text-xs font-mono tracking-wider">
+                        <tr className="border-b border-border text-muted-foreground text-xs font-mono tracking-wider">
                           <th className="pb-3 pl-2 w-10">
                             <input
                               type="checkbox"
                               checked={allFilteredUsersSelected}
                               onChange={handleSelectAllUsers}
-                              className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                              className="w-4 h-4 rounded border-border bg-background text-indigo-500 focus:ring-primary/20"
                             />
                           </th>
                           <th className="pb-3 pl-2">Status / Tipo</th>
@@ -434,19 +434,19 @@ export default function AdminPanel() {
                       <tbody className="divide-y divide-slate-800/50">
                         {filteredUsers.length === 0 ? (
                           <tr>
-                            <td colSpan="7" className="py-8 text-center text-slate-500 text-sm">
+                            <td colSpan="7" className="py-8 text-center text-muted-foreground text-sm">
                               Nenhum usuário encontrado.
                             </td>
                           </tr>
                         ) : (
                           filteredUsers.map((user) => (
-                            <tr key={user.id} className="group hover:bg-slate-800/20 transition-all">
+                            <tr key={user.id} className="group hover:bg-accent/20 transition-all">
                               <td className="py-3.5 pl-2">
                                 <input
                                   type="checkbox"
                                   checked={selectedUserIds.includes(user.id)}
                                   onChange={() => handleSelectUser(user.id)}
-                                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                                  className="w-4 h-4 rounded border-border bg-background text-indigo-500 focus:ring-primary/20"
                                 />
                               </td>
                               <td className="py-3.5 pl-2">
@@ -461,7 +461,7 @@ export default function AdminPanel() {
                                   />
                                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
                                     user.type === "Google"
-                                      ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                      ? "bg-primary/10 text-primary border border-primary/20"
                                       : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                                   }`}>
                                     {user.type}
@@ -471,29 +471,29 @@ export default function AdminPanel() {
                               <td className="py-3.5">
                                 <div className="flex items-center gap-3">
                                   {user.picture ? (
-                                    <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full border border-slate-700" />
+                                    <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full border border-border" />
                                   ) : (
-                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300">
+                                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-foreground/80">
                                       {user.name.charAt(0).toUpperCase()}
                                     </div>
                                   )}
                                   <div>
-                                    <div className="font-semibold text-slate-200 text-sm group-hover:text-white transition">
+                                    <div className="font-semibold text-foreground text-sm group-hover:text-primary-foreground transition">
                                       {user.name}
                                     </div>
-                                    <div className="text-xs text-slate-500 font-mono truncate max-w-[200px]" title={user.id}>
+                                    <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]" title={user.id}>
                                       {user.email || user.id}
                                     </div>
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-3.5 text-center text-sm font-mono text-slate-300">
+                              <td className="py-3.5 text-center text-sm font-mono text-foreground/80">
                                 {user.rooms_owned}
                               </td>
-                              <td className="py-3.5 text-center text-sm font-mono text-slate-300">
+                              <td className="py-3.5 text-center text-sm font-mono text-foreground/80">
                                 {user.votes_cast}
                               </td>
-                              <td className="py-3.5 text-center text-sm font-mono text-slate-300">
+                              <td className="py-3.5 text-center text-sm font-mono text-foreground/80">
                                 {user.rooms_participated}
                               </td>
                               <td className="py-3.5 pr-2 text-right">
@@ -505,7 +505,7 @@ export default function AdminPanel() {
                                       className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition ${
                                         selectedSources.includes(user.id)
                                           ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                                          : "bg-slate-950 text-slate-400 border-slate-800 hover:text-amber-400 hover:border-amber-500/30 disabled:opacity-30"
+                                          : "bg-background text-muted-foreground border-border hover:text-amber-400 hover:border-amber-500/30 disabled:opacity-30"
                                       }`}
                                     >
                                       {selectedSources.includes(user.id) ? "Selecionado" : "Mesclar"}
@@ -513,7 +513,7 @@ export default function AdminPanel() {
                                   )}
                                   <button
                                     onClick={() => handleInitiateDeleteUser(user)}
-                                    className="p-1.5 hover:bg-red-500/10 text-slate-500 hover:text-red-400 rounded-lg transition"
+                                    className="p-1.5 hover:bg-red-500/10 text-muted-foreground hover:text-red-400 rounded-lg transition"
                                     title="Excluir Usuário"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -529,26 +529,26 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Painel de Mesclagem */}
-                <div className="lg:col-span-4 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm sticky top-24">
-                  <div className="flex items-center gap-2.5 mb-4 text-indigo-400">
+                <div className="lg:col-span-4 bg-card/40 border border-border/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm sticky top-24">
+                  <div className="flex items-center gap-2.5 mb-4 text-primary">
                     <GitMerge className="w-5 h-5" />
-                    <h3 className="text-lg font-bold text-white">Mesclar Usuários</h3>
+                    <h3 className="text-lg font-bold text-primary-foreground">Mesclar Usuários</h3>
                   </div>
                   
-                  <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
                     Unifique múltiplos usuários Guest temporários em um usuário destino definitivo (Google ou outro Guest). Isso mudará o ID nas relações de salas criadas, votos e participações.
                   </p>
 
                   <div className="space-y-5">
                     {/* Usuário Destino */}
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                         1. Usuário de Destino (Receberá os dados)
                       </label>
                       <select
                         value={targetUserId}
                         onChange={(e) => setTargetUserId(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary transition"
                       >
                         <option value="">Selecione o usuário destino...</option>
                         {targetUserOptions.map(u => (
@@ -561,7 +561,7 @@ export default function AdminPanel() {
 
                     {/* Origens Selecionadas */}
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
                         <span>2. Origens Selecionadas ({selectedSources.length})</span>
                         {selectedSources.length > 0 && (
                           <button 
@@ -574,24 +574,24 @@ export default function AdminPanel() {
                       </label>
                       
                       {selectedSources.length === 0 ? (
-                        <div className="border border-dashed border-slate-800 rounded-xl p-4 text-center text-xs text-slate-500 leading-normal">
+                        <div className="border border-dashed border-border rounded-xl p-4 text-center text-xs text-muted-foreground leading-normal">
                           Clique em <span className="text-amber-500 font-semibold">"Mesclar"</span> na tabela ao lado para selecionar os Guests que deseja unificar.
                         </div>
                       ) : (
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl max-h-48 overflow-y-auto divide-y divide-slate-900">
+                        <div className="bg-background border border-border rounded-xl max-h-48 overflow-y-auto divide-y divide-slate-900">
                           {selectedSources.map(id => {
                             const u = users.find(user => user.id === id);
                             return (
                               <div key={id} className="p-2.5 flex items-center justify-between text-xs">
-                                <span className="font-semibold text-slate-300 truncate max-w-[180px]">
+                                <span className="font-semibold text-foreground/80 truncate max-w-[180px]">
                                   {u?.name || "Desconhecido"}
                                 </span>
-                                <span className="font-mono text-slate-500 text-[10px]">
+                                <span className="font-mono text-muted-foreground text-[10px]">
                                   {id.slice(0, 14)}...
                                 </span>
                                 <button
                                   onClick={() => handleToggleSourceUser(id)}
-                                  className="text-slate-500 hover:text-slate-200 transition"
+                                  className="text-muted-foreground hover:text-foreground transition"
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
@@ -606,7 +606,7 @@ export default function AdminPanel() {
                     <button
                       onClick={handleMergeUsers}
                       disabled={isMerging || !targetUserId || selectedSources.length === 0}
-                      className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none transition flex items-center justify-center gap-2 text-sm mt-2"
+                      className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-primary hover:to-purple-700 text-primary-foreground rounded-xl font-semibold shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none transition flex items-center justify-center gap-2 text-sm mt-2"
                     >
                       {isMerging ? (
                         <>
@@ -628,17 +628,17 @@ export default function AdminPanel() {
 
             {/* --- TAB DE SALAS --- */}
             {activeTab === "rooms" && (
-              <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
+              <div className="bg-card/40 border border-border/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                   <h3 className="text-lg font-bold">Salas Ativas</h3>
                   <div className="relative w-full sm:w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       placeholder="Buscar por código ou nome..."
                       value={searchRoom}
                       onChange={(e) => setSearchRoom(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                      className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-xl text-sm placeholder-slate-500 focus:outline-none focus:border-primary transition"
                     />
                   </div>
                 </div>
@@ -646,13 +646,13 @@ export default function AdminPanel() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-800 text-slate-400 text-xs font-mono tracking-wider">
+                      <tr className="border-b border-border text-muted-foreground text-xs font-mono tracking-wider">
                         <th className="pb-3 pl-2 w-10">
                           <input
                             type="checkbox"
                             checked={allFilteredRoomsSelected}
                             onChange={handleSelectAllRooms}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                            className="w-4 h-4 rounded border-border bg-background text-indigo-500 focus:ring-primary/20"
                           />
                         </th>
                         <th className="pb-3 pl-2">Código</th>
@@ -668,7 +668,7 @@ export default function AdminPanel() {
                     <tbody className="divide-y divide-slate-800/50">
                       {filteredRooms.length === 0 ? (
                         <tr>
-                          <td colSpan="9" className="py-8 text-center text-slate-500 text-sm">
+                          <td colSpan="9" className="py-8 text-center text-muted-foreground text-sm">
                             Nenhuma sala encontrada.
                           </td>
                         </tr>
@@ -676,41 +676,41 @@ export default function AdminPanel() {
                         filteredRooms.map((room) => {
                           const ownerUser = users.find(u => u.id === room.owner_id);
                           return (
-                            <tr key={room.id} className="group hover:bg-slate-800/20 transition-all">
+                            <tr key={room.id} className="group hover:bg-accent/20 transition-all">
                               <td className="py-3.5 pl-2">
                                 <input
                                   type="checkbox"
                                   checked={selectedRoomIds.includes(room.id)}
                                   onChange={() => handleSelectRoom(room.id)}
-                                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/20"
+                                  className="w-4 h-4 rounded border-border bg-background text-indigo-500 focus:ring-primary/20"
                                 />
                               </td>
-                              <td className="py-3.5 pl-2 font-mono font-bold text-indigo-400">
+                              <td className="py-3.5 pl-2 font-mono font-bold text-primary">
                                 {room.id}
                               </td>
-                              <td className="py-3.5 font-semibold text-slate-200">
+                              <td className="py-3.5 font-semibold text-foreground">
                                 {room.name}
                               </td>
                               <td className="py-3.5">
-                                <div className="text-sm text-slate-300">
+                                <div className="text-sm text-foreground/80">
                                   {ownerUser ? ownerUser.name : "Desconhecido"}
                                 </div>
-                                <div className="text-xs text-slate-500 font-mono">
+                                <div className="text-xs text-muted-foreground font-mono">
                                   {room.owner_id ? `${room.owner_id.slice(0, 14)}...` : "Nenhum"}
                                 </div>
                               </td>
-                              <td className="py-3.5 text-center text-xs text-slate-400">
+                              <td className="py-3.5 text-center text-xs text-muted-foreground">
                                 {room.created_at ? new Date(room.created_at).toLocaleString("pt-BR") : "-"}
                               </td>
                               <td className="py-3.5 text-center">
-                                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-accent text-foreground/80 border border-border">
                                   {room.deck_type}
                                 </span>
                               </td>
-                              <td className="py-3.5 text-center text-sm font-mono text-slate-300">
+                              <td className="py-3.5 text-center text-sm font-mono text-foreground/80">
                                 {room.tasks_count}
                               </td>
-                              <td className="py-3.5 text-center text-sm font-mono text-slate-300">
+                              <td className="py-3.5 text-center text-sm font-mono text-foreground/80">
                                 {room.total_users_count} <span className="text-emerald-500 text-xs">({room.active_users_count})</span>
                               </td>
                               <td className="py-3.5 pr-2 text-right">
@@ -719,14 +719,14 @@ export default function AdminPanel() {
                                     href={`/room/${room.id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="p-1.5 hover:bg-slate-800 text-slate-500 hover:text-indigo-400 rounded-lg transition"
+                                    className="p-1.5 hover:bg-accent text-muted-foreground hover:text-primary rounded-lg transition"
                                     title="Ir para a Sala"
                                   >
                                     <ExternalLink className="w-4 h-4" />
                                   </a>
                                   <button
                                     onClick={() => setDeleteTargetRoom(room)}
-                                    className="p-1.5 hover:bg-red-500/10 text-slate-500 hover:text-red-400 rounded-lg transition"
+                                    className="p-1.5 hover:bg-red-500/10 text-muted-foreground hover:text-red-400 rounded-lg transition"
                                     title="Excluir Sala"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -750,24 +750,24 @@ export default function AdminPanel() {
 
       {/* Barra de Ações em Lote para Usuários */}
       {selectedUserIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 flex items-center gap-6 shadow-2xl z-40 animate-in slide-in-from-bottom duration-300 max-w-lg w-[calc(100%-2rem)] justify-between">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-2xl px-6 py-4 flex items-center gap-6 shadow-2xl z-40 animate-in slide-in-from-bottom duration-300 max-w-lg w-[calc(100%-2rem)] justify-between">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
-            <span className="text-sm font-semibold text-slate-300">
+            <span className="text-sm font-semibold text-foreground/80">
               {selectedUserIds.length} {selectedUserIds.length === 1 ? 'usuário selecionado' : 'usuários selecionados'}
             </span>
           </div>
           <div className="flex gap-2">
             <button
               onClick={handleInitiateBulkDeleteUsers}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-primary-foreground text-xs font-bold rounded-xl transition flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Excluir Selecionados
             </button>
             <button
               onClick={() => setSelectedUserIds([])}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+              className="px-3 py-2 bg-accent hover:bg-accent text-foreground/80 text-xs font-semibold rounded-xl transition"
             >
               Cancelar
             </button>
@@ -777,24 +777,24 @@ export default function AdminPanel() {
 
       {/* Barra de Ações em Lote para Salas */}
       {selectedRoomIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 flex items-center gap-6 shadow-2xl z-40 animate-in slide-in-from-bottom duration-300 max-w-lg w-[calc(100%-2rem)] justify-between">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-2xl px-6 py-4 flex items-center gap-6 shadow-2xl z-40 animate-in slide-in-from-bottom duration-300 max-w-lg w-[calc(100%-2rem)] justify-between">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
-            <span className="text-sm font-semibold text-slate-300">
+            <span className="text-sm font-semibold text-foreground/80">
               {selectedRoomIds.length} {selectedRoomIds.length === 1 ? 'sala selecionada' : 'salas selecionadas'}
             </span>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setShowBulkRoomModal(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-primary-foreground text-xs font-bold rounded-xl transition flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Excluir Selecionadas
             </button>
             <button
               onClick={() => setSelectedRoomIds([])}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+              className="px-3 py-2 bg-accent hover:bg-accent text-foreground/80 text-xs font-semibold rounded-xl transition"
             >
               Cancelar
             </button>
@@ -807,42 +807,42 @@ export default function AdminPanel() {
       {/* Modal Deletar Usuário Único */}
       {deleteTargetUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setDeleteTargetUser(null)} />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setDeleteTargetUser(null)} />
           
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-start gap-4 mb-4">
               <div className="p-3 bg-red-500/10 text-red-400 rounded-xl">
                 <ShieldAlert className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Confirmar Exclusão de Usuário</h4>
-                <p className="text-sm text-slate-400 mt-1">
-                  Você está prestes a excluir o usuário <span className="font-bold text-slate-200">{deleteTargetUser.name}</span>.
+                <h4 className="text-base font-bold text-primary-foreground">Confirmar Exclusão de Usuário</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você está prestes a excluir o usuário <span className="font-bold text-foreground">{deleteTargetUser.name}</span>.
                 </p>
               </div>
             </div>
 
             {isCheckingRelations ? (
-              <div className="py-4 flex items-center justify-center gap-2 text-slate-500 text-sm">
-                <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
+              <div className="py-4 flex items-center justify-center gap-2 text-muted-foreground text-sm">
+                <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                 Verificando relações...
               </div>
             ) : (
               userRelationsCheck && (
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4 space-y-2 text-xs">
-                  <div className="font-semibold text-slate-300 flex items-center gap-1.5 mb-1 text-amber-400">
+                <div className="bg-background border border-border rounded-xl p-4 my-4 space-y-2 text-xs">
+                  <div className="font-semibold text-foreground/80 flex items-center gap-1.5 mb-1 text-amber-400">
                     <Info className="w-3.5 h-3.5" />
                     Impacto da Exclusão:
                   </div>
-                  <div className="grid grid-cols-2 gap-y-1 text-slate-400">
+                  <div className="grid grid-cols-2 gap-y-1 text-muted-foreground">
                     <span>Salas Criadas (Owner):</span>
-                    <span className={`font-mono text-right ${userRelationsCheck.owned_rooms > 0 ? "text-red-400 font-bold" : "text-slate-300"}`}>
+                    <span className={`font-mono text-right ${userRelationsCheck.owned_rooms > 0 ? "text-red-400 font-bold" : "text-foreground/80"}`}>
                       {userRelationsCheck.owned_rooms}
                     </span>
                     <span>Votos Cadastrados:</span>
-                    <span className="font-mono text-slate-300 text-right">{userRelationsCheck.votes}</span>
+                    <span className="font-mono text-foreground/80 text-right">{userRelationsCheck.votes}</span>
                     <span>Salas Participadas:</span>
-                    <span className="font-mono text-slate-300 text-right">{userRelationsCheck.memberships}</span>
+                    <span className="font-mono text-foreground/80 text-right">{userRelationsCheck.memberships}</span>
                   </div>
                   {userRelationsCheck.has_relations && (
                     <div className="text-[10px] text-red-400/90 leading-relaxed border-t border-slate-900 pt-2 mt-2">
@@ -856,14 +856,14 @@ export default function AdminPanel() {
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 onClick={() => { setDeleteTargetUser(null); setUserRelationsCheck(null); }}
-                className="px-4 py-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-sm transition"
+                className="px-4 py-2 hover:bg-accent text-foreground/80 hover:text-primary-foreground rounded-xl text-sm transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmDeleteUser}
                 disabled={isDeletingUser || isCheckingRelations}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-primary-foreground rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
               >
                 {isDeletingUser ? "Excluindo..." : "Confirmar Exclusão"}
               </button>
@@ -875,36 +875,36 @@ export default function AdminPanel() {
       {/* Modal Deletar Usuários em Lote */}
       {showBulkUserModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowBulkUserModal(false)} />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowBulkUserModal(false)} />
           
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-start gap-4 mb-4">
               <div className="p-3 bg-red-500/10 text-red-400 rounded-xl">
                 <ShieldAlert className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Confirmar Exclusão em Lote</h4>
-                <p className="text-sm text-slate-400 mt-1">
-                  Deseja realmente excluir os <span className="font-bold text-slate-200">{selectedUserIds.length} usuários</span> selecionados?
+                <h4 className="text-base font-bold text-primary-foreground">Confirmar Exclusão em Lote</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Deseja realmente excluir os <span className="font-bold text-foreground">{selectedUserIds.length} usuários</span> selecionados?
                 </p>
               </div>
             </div>
 
             {bulkUserRelations && (
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4 space-y-2 text-xs">
-                <div className="font-semibold text-slate-300 flex items-center gap-1.5 mb-1 text-amber-400">
+              <div className="bg-background border border-border rounded-xl p-4 my-4 space-y-2 text-xs">
+                <div className="font-semibold text-foreground/80 flex items-center gap-1.5 mb-1 text-amber-400">
                   <Info className="w-3.5 h-3.5" />
                   Impacto Total do Lote:
                 </div>
-                <div className="grid grid-cols-2 gap-y-1 text-slate-400">
+                <div className="grid grid-cols-2 gap-y-1 text-muted-foreground">
                   <span>Salas a serem excluídas:</span>
-                  <span className={`font-mono text-right ${bulkUserRelations.owned_rooms > 0 ? "text-red-400 font-bold" : "text-slate-300"}`}>
+                  <span className={`font-mono text-right ${bulkUserRelations.owned_rooms > 0 ? "text-red-400 font-bold" : "text-foreground/80"}`}>
                     {bulkUserRelations.owned_rooms}
                   </span>
                   <span>Votos a serem excluídos:</span>
-                  <span className="font-mono text-slate-300 text-right">{bulkUserRelations.votes}</span>
+                  <span className="font-mono text-foreground/80 text-right">{bulkUserRelations.votes}</span>
                   <span>Participações removidas:</span>
-                  <span className="font-mono text-slate-300 text-right">{bulkUserRelations.memberships}</span>
+                  <span className="font-mono text-foreground/80 text-right">{bulkUserRelations.memberships}</span>
                 </div>
                 {bulkUserRelations.has_relations && (
                   <div className="text-[10px] text-red-400/90 leading-relaxed border-t border-slate-900 pt-2 mt-2">
@@ -917,14 +917,14 @@ export default function AdminPanel() {
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 onClick={() => { setShowBulkUserModal(false); setBulkUserRelations(null); }}
-                className="px-4 py-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-sm transition"
+                className="px-4 py-2 hover:bg-accent text-foreground/80 hover:text-primary-foreground rounded-xl text-sm transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmBulkDeleteUsers}
                 disabled={isDeletingBulkUsers}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-primary-foreground rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
               >
                 {isDeletingBulkUsers ? "Excluindo..." : "Confirmar Exclusão em Lote"}
               </button>
@@ -936,22 +936,22 @@ export default function AdminPanel() {
       {/* Modal Deletar Sala Única */}
       {deleteTargetRoom && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setDeleteTargetRoom(null)} />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setDeleteTargetRoom(null)} />
           
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-start gap-4 mb-4">
               <div className="p-3 bg-red-500/10 text-red-400 rounded-xl">
                 <ShieldAlert className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Confirmar Exclusão de Sala</h4>
-                <p className="text-sm text-slate-400 mt-1">
-                  Você está excluindo a sala <span className="font-bold text-slate-200">{deleteTargetRoom.name} ({deleteTargetRoom.id})</span>.
+                <h4 className="text-base font-bold text-primary-foreground">Confirmar Exclusão de Sala</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você está excluindo a sala <span className="font-bold text-foreground">{deleteTargetRoom.name} ({deleteTargetRoom.id})</span>.
                 </p>
               </div>
             </div>
 
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4 text-xs text-slate-400 space-y-1 leading-relaxed">
+            <div className="bg-background border border-border rounded-xl p-4 my-4 text-xs text-muted-foreground space-y-1 leading-relaxed">
               <p>Esta operação apagará:</p>
               <ul className="list-disc pl-4 space-y-0.5">
                 <li>Configurações e registros da sala.</li>
@@ -966,14 +966,14 @@ export default function AdminPanel() {
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 onClick={() => setDeleteTargetRoom(null)}
-                className="px-4 py-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-sm transition"
+                className="px-4 py-2 hover:bg-accent text-foreground/80 hover:text-primary-foreground rounded-xl text-sm transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmDeleteRoom}
                 disabled={isDeletingRoom}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-primary-foreground rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
               >
                 {isDeletingRoom ? "Excluindo..." : "Excluir Sala"}
               </button>
@@ -985,22 +985,22 @@ export default function AdminPanel() {
       {/* Modal Deletar Salas em Lote */}
       {showBulkRoomModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowBulkRoomModal(false)} />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowBulkRoomModal(false)} />
           
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-start gap-4 mb-4">
               <div className="p-3 bg-red-500/10 text-red-400 rounded-xl">
                 <ShieldAlert className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Excluir Salas em Lote</h4>
-                <p className="text-sm text-slate-400 mt-1">
-                  Você está prestes a excluir permanentemente <span className="font-bold text-slate-200">{selectedRoomIds.length} salas</span>.
+                <h4 className="text-base font-bold text-primary-foreground">Excluir Salas em Lote</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você está prestes a excluir permanentemente <span className="font-bold text-foreground">{selectedRoomIds.length} salas</span>.
                 </p>
               </div>
             </div>
 
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4 text-xs text-slate-400 space-y-1 leading-relaxed">
+            <div className="bg-background border border-border rounded-xl p-4 my-4 text-xs text-muted-foreground space-y-1 leading-relaxed">
               <p>Essa ação irá apagar em todas as salas selecionadas:</p>
               <ul className="list-disc pl-4 space-y-0.5">
                 <li>Todo o histórico de tarefas criadas.</li>
@@ -1014,14 +1014,14 @@ export default function AdminPanel() {
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowBulkRoomModal(false)}
-                className="px-4 py-2 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-sm transition"
+                className="px-4 py-2 hover:bg-accent text-foreground/80 hover:text-primary-foreground rounded-xl text-sm transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmBulkDeleteRooms}
                 disabled={isDeletingBulkRooms}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-primary-foreground rounded-xl text-sm font-semibold shadow-lg shadow-red-600/10 hover:shadow-red-600/20 transition disabled:opacity-50"
               >
                 {isDeletingBulkRooms ? "Excluindo..." : "Confirmar Exclusão em Lote"}
               </button>
