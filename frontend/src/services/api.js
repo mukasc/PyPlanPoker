@@ -4,9 +4,10 @@ import useGameStore from '../store/gameStore';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://pyplanpoker.onrender.com', // Prefer production URL default
+  withCredentials: true,
 });
 
-// Adiciona o token JWT em todas as requisições se existir
+// Adiciona o token JWT em todas as requisições se existir (legacy fallback)
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {

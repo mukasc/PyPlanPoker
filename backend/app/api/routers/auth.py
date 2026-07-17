@@ -1,7 +1,7 @@
 import os
 import uuid
 import logging
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Response
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/google")
 @limiter.limit("5/minute")
-async def auth_google(request: Request, input: AuthGoogle):
+async def auth_google(request: Request, input: AuthGoogle, response: Response):
     try:
         idinfo = id_token.verify_oauth2_token(input.credential, google_requests.Request(), settings.GOOGLE_CLIENT_ID)
         userid = idinfo['sub']
@@ -33,6 +33,15 @@ async def auth_google(request: Request, input: AuthGoogle):
         
         token = create_access_token(data={"sub": userid})
         
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            samesite="lax",
+            secure=False
+        )
+        
         return {
             "id": userid,
             "email": email,
@@ -47,9 +56,19 @@ async def auth_google(request: Request, input: AuthGoogle):
 
 @router.post("/guest")
 @limiter.limit("100/minute")
-async def auth_guest(request: Request, input: GuestAuth):
+async def auth_guest(request: Request, input: GuestAuth, response: Response):
     guest_id = f"guest-{str(uuid.uuid4())[:12]}"
     token = create_access_token(data={"sub": guest_id, "is_guest": True})
+    
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="lax",
+        secure=False
+    )
+    
     return {
         "id": guest_id,
         "name": input.name,
@@ -57,3 +76,8 @@ async def auth_guest(request: Request, input: GuestAuth):
         "token_type": "bearer",
         "is_guest": True
     }
+
+@router.post("/logout")
+async def auth_logout(response: Response):
+    response.delete_cookie(key="access_token", samesite="lax")
+    return {"status": "success"}

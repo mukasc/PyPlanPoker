@@ -1,12 +1,27 @@
 import socketio
 import logging
 from typing import Optional, Dict, Any
+from http import cookies
+from jose import jwt, JWTError
 from app.db.database import get_db
 from app.models.domain import FIBONACCI_VALUES
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*', logger=True, engineio_logger=True, allow_eio3=True)
+sio = socketio.AsyncServer(
+    async_mode='asgi', 
+    cors_allowed_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://pyplanpoker.vercel.app",
+        "https://pyplanpoker-frontend.vercel.app"
+    ],
+    cors_credentials=True,
+    logger=True, 
+    engineio_logger=True, 
+    allow_eio3=True
+)
 socket_users = {}
 
 async def get_room_state(room_id: str, include_votes: bool = False, requesting_user_id: Optional[str] = None) -> Dict[str, Any]:
@@ -64,7 +79,45 @@ async def check_all_voted(room_id: str, task_id: str) -> bool:
 
 
 @sio.event
-async def connect(sid, environ): return True
+async def connect(sid, environ, auth=None):
+    token = None
+    if auth and isinstance(auth, dict) and auth.get('token'):
+        token = auth['token']
+        
+    if not token:
+        cookie_header = environ.get('HTTP_COOKIE', '')
+        if not cookie_header:
+            scope = environ.get('asgi.scope', {})
+            headers = scope.get('headers', [])
+            for k, v in headers:
+                if k == b'cookie':
+                    cookie_header = v.decode('utf-8')
+                    break
+        
+        import re
+        match = re.search(r'access_token=([^;]+)', cookie_header)
+        if match:
+            token = match.group(1)
+        else:
+            cookie = cookies.SimpleCookie(cookie_header)
+            token = cookie['access_token'].value if 'access_token' in cookie else None
+    
+    if not token:
+        logger.warning(f"Connection refused: No token for sid {sid}")
+        raise socketio.exceptions.ConnectionRefusedError('unauthorized')
+    
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise socketio.exceptions.ConnectionRefusedError('invalid_token')
+        async with sio.session(sid) as session:
+            session['user_id'] = user_id
+    except JWTError:
+        logger.warning(f"Connection refused: Invalid token for sid {sid}")
+        raise socketio.exceptions.ConnectionRefusedError('unauthorized')
+        
+    return True
 
 @sio.event
 async def disconnect(sid):
@@ -90,9 +143,15 @@ async def disconnect(sid):
 
 @sio.event
 async def join_room(sid, data):
+    session = await sio.get_session(sid)
+    auth_user_id = session.get('user_id')
+    if not auth_user_id:
+        return
+        
     room_id = data.get("room_id").upper()
-    user_id = data.get("user_id")
-    logger.info(f"🔌 Socket Join: Room {room_id}")
+    user_id = auth_user_id # Force authenticated user ID
+    
+    logger.info(f"🔌 Socket Join: Room {room_id} (User: {user_id})")
     await sio.enter_room(sid, room_id)
     socket_users[sid] = {"room_id": room_id, "user_id": user_id}
     

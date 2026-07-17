@@ -74,16 +74,11 @@ async def join_room_http(request: Request, room_id: str, input: UserJoin):
     return {"user": final_user_doc, "room": room}
 
 @router.get("/{room_id}/state")
-async def get_state_http(room_id: str, request: Request):
-    requesting_user_id = None
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ")[1]
-        try:
-            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
-            requesting_user_id = payload.get("sub")
-        except JWTError:
-            pass
-    return await get_room_state(room_id.upper(), requesting_user_id=requesting_user_id)
-
-
+@limiter.limit("60/minute")
+async def get_state_http(room_id: str, request: Request, current_user_id: str = Depends(get_current_user)):
+    room_id = room_id.upper()
+    db = get_db()
+    user = await db.users.find_one({"id": current_user_id, "room_id": room_id})
+    if not user:
+        raise HTTPException(status_code=403, detail="You are not a member of this room")
+    return await get_room_state(room_id, requesting_user_id=current_user_id)

@@ -8,7 +8,7 @@ from .config import settings
 
 limiter = Limiter(key_func=get_remote_address)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -17,8 +17,14 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
+async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = request.cookies.get("access_token")
+    if not token and credentials:
+        token = credentials.credentials
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")

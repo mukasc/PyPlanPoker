@@ -42,6 +42,13 @@ async def cast_vote_http(action: ActionVote, current_user_id: str = Depends(get_
     user = await db.users.find_one({"id": action.user_id, "room_id": action.room_id})
     if not user or user.get("is_spectator"): raise HTTPException(403, "Cannot vote")
     
+    room = await db.rooms.find_one({"id": action.room_id})
+    if not room: raise HTTPException(404, "Room not found")
+    
+    deck_values = room.get("deck_values", [])
+    if str(action.value) not in deck_values:
+        raise HTTPException(400, f"Invalid vote value. Must be one of: {deck_values}")
+    
     await db.votes.delete_one({"task_id": action.task_id, "user_id": action.user_id})
     vote = Vote(task_id=action.task_id, user_id=action.user_id, value=str(action.value))
     await db.votes.insert_one(vote.model_dump())

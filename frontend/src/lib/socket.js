@@ -20,6 +20,10 @@ export const connectSocket = () => {
       reconnection: true,
       reconnectionAttempts: 10,
       autoConnect: true,
+      withCredentials: true,
+      auth: {
+        token: localStorage.getItem('access_token') // Legacy fallback
+      }
     });
     
     socket.on('connect_error', (err) => {
