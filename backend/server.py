@@ -96,6 +96,7 @@ class TaskCreate(BaseModel):
 
 class AuthGoogle(BaseModel): credential: str
 class GuestAuth(BaseModel): name: str
+class ThemeUpdate(BaseModel): theme: str
 
 class ActionBase(BaseModel):
     room_id: str
@@ -311,12 +312,16 @@ async def auth_google(request: Request, input: AuthGoogle):
         name = idinfo.get('name', '')
         picture = idinfo.get('picture', '')
 
+        theme = "classic"
         if db is not None:
-             await db.global_users.update_one(
+             user_db = await db.global_users.find_one_and_update(
                  {"id": userid},
                  {"$set": {"email": email, "name": name, "picture": picture}},
-                 upsert=True
+                 upsert=True,
+                 return_document=True
              )
+             if user_db and "theme" in user_db:
+                 theme = user_db["theme"]
         
         token = create_access_token(data={"sub": userid})
         
@@ -325,6 +330,7 @@ async def auth_google(request: Request, input: AuthGoogle):
             "email": email,
             "name": name,
             "picture": picture,
+            "theme": theme,
             "access_token": token,
             "token_type": "bearer"
         }
@@ -340,10 +346,21 @@ async def auth_guest(request: Request, input: GuestAuth):
     return {
         "id": guest_id,
         "name": input.name,
+        "theme": "classic",
         "access_token": token,
         "token_type": "bearer",
         "is_guest": True
     }
+
+@api_router.post("/user/theme")
+@limiter.limit("20/minute")
+async def update_theme(request: Request, input: ThemeUpdate, current_user_id: str = Depends(get_current_user)):
+    if db is not None:
+        await db.global_users.update_one(
+            {"id": current_user_id},
+            {"$set": {"theme": input.theme}}
+        )
+    return {"status": "success"}
 
 @api_router.post("/rooms", response_model=Room)
 @limiter.limit("10/minute")

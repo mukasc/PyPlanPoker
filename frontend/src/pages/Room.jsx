@@ -13,6 +13,7 @@ import PokerTable from '../components/game/PokerTable';
 import CardHand from '../components/game/CardHand';
 import AdminControls from '../components/game/AdminControls';
 import TaskPanel from '../components/game/TaskPanel';
+import ThemeToggle from '../components/ThemeToggle';
 
 const FIBONACCI = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '?'];
 const API = '/api';
@@ -257,7 +258,7 @@ const Room = () => {
   const currentDeck = roomState.room?.deck_values || room.deck_values || FIBONACCI;
 
   return (
-    <div className="h-screen bg-slate-950 overflow-hidden">
+    <div className="h-screen bg-background text-foreground overflow-hidden">
       <Toaster position="top-center" theme="dark" />
       <div className="grid grid-cols-1 lg:grid-cols-12 h-full">
         <Sidebar
@@ -273,14 +274,14 @@ const Room = () => {
           isConnected={isConnected}
         />
         <main className="col-span-1 lg:col-span-9 flex flex-col h-full overflow-hidden">
-          <header className="flex-shrink-0 p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+          <header className="flex-shrink-0 p-4 border-b border-border bg-card/50 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-200 font-mono flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-card-foreground font-mono flex items-center gap-2">
                     {activeTask ? activeTask.title : 'No Active Task'}
                   </h2>
-                  {activeTask?.description && <p className="text-sm text-slate-400 mt-1 max-w-xl truncate">{activeTask.description}</p>}
+                  {activeTask?.description && <p className="text-sm text-muted-foreground mt-1 max-w-xl truncate">{activeTask.description}</p>}
                 </div>
                 
                 {/* Task List Button (Visible to everyone) */}
@@ -289,19 +290,20 @@ const Room = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowTaskPanel(true)}
-                  className="bg-slate-800/50 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 ml-2"
+                  className="bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:bg-secondary ml-2"
                 >
-                  <ListTodo className="w-4 h-4 mr-2 text-indigo-400" />
+                  <ListTodo className="w-4 h-4 mr-2 text-primary" />
                   View Tasks
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleToggleMute}
-                  className="text-slate-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </Button>
+                <ThemeToggle />
               </div>
               {user.is_admin && (
                 <AdminControls
@@ -330,7 +332,7 @@ const Room = () => {
             />
           </div>
           {!user.is_spectator && (
-            <div className="flex-shrink-0 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm">
+            <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm">
               <CardHand
                 cards={currentDeck}
                 selectedCard={selectedCard}
@@ -339,7 +341,7 @@ const Room = () => {
               />
             </div>
           )}
-          {user.is_spectator && <div className="flex-shrink-0 p-4 border-t border-slate-800 bg-slate-900/80 text-center"><p className="text-slate-400 text-sm">Spectator Mode</p></div>}
+          {user.is_spectator && <div className="flex-shrink-0 p-4 border-t border-border bg-card/80 text-center"><p className="text-muted-foreground text-sm">Spectator Mode</p></div>}
         </main>
       </div>
       {showTaskPanel && (

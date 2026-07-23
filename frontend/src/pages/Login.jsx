@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import useAuthStore from '../store/authStore';
 import api from '../services/api';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -59,33 +60,36 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/90/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       </div>
       <Toaster position="top-center" theme="dark" />
       
       <div className="text-center mb-12 relative z-10">
         <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/30">
+          <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-5xl font-bold text-slate-200 tracking-tight font-mono">
+          <h1 className="text-5xl font-bold text-foreground tracking-tight font-mono">
             PyPlanPoker
           </h1>
         </div>
-        <p className="text-slate-400 text-lg">
+        <p className="text-muted-foreground text-lg">
           Sign in to start estimating with your team
         </p>
       </div>
 
-      <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-2xl shadow-black/50 relative z-10 flex flex-col items-center p-6">
+      <Card className="w-full max-w-md bg-card border-border shadow-2xl shadow-black/50 relative z-10 flex flex-col items-center p-6">
          <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-2xl text-slate-200 font-mono">
+          <CardTitle className="text-2xl text-card-foreground font-mono">
             Welcome Back
           </CardTitle>
-          <CardDescription className="text-slate-400 mb-6">
+          <CardDescription className="text-muted-foreground mb-6">
             Please sign in using your Google account to continue.
           </CardDescription>
         </CardHeader>
@@ -100,17 +104,17 @@ const Login = () => {
                
                <div className="relative w-full my-4">
                  <div className="absolute inset-0 flex items-center">
-                   <span className="w-full border-t border-slate-800" />
+                   <span className="w-full border-t border-border" />
                  </div>
                  <div className="relative flex justify-center text-xs uppercase">
-                   <span className="bg-slate-900 px-2 text-slate-500">Or continue with</span>
+                   <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                  </div>
                </div>
                
                <Button 
                  variant="outline" 
                  onClick={() => setShowGuestForm(true)}
-                 className="w-full bg-slate-800/50 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 h-10 rounded-full"
+                 className="w-full h-10 rounded-full"
                >
                  <User className="w-4 h-4 mr-2" />
                  Continue as Guest
@@ -119,13 +123,13 @@ const Login = () => {
            ) : (
              <form onSubmit={handleGuestLogin} className="w-full space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Display Name</label>
+                  <label className="text-sm font-medium text-foreground">Display Name</label>
                   <Input
                     type="text"
                     placeholder="Enter your name"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    className="bg-slate-950 border-slate-800 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500 focus:ring-indigo-500"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary"
                     autoFocus
                   />
                 </div>
@@ -134,13 +138,13 @@ const Login = () => {
                     type="button" 
                     variant="ghost" 
                     onClick={() => setShowGuestForm(false)}
-                    className="w-1/3 text-slate-400 hover:text-white"
+                    className="w-1/3 text-muted-foreground hover:text-foreground"
                   >
                     Back
                   </Button>
                   <Button 
                     type="submit" 
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white"
+                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     Join
                     <ArrowRight className="w-4 h-4 ml-2" />

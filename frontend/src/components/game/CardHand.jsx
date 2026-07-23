@@ -27,10 +27,10 @@ const CardHand = ({ cards, selectedCard, onSelect, disabled }) => {
                 "flex items-center justify-center",
                 "border-2 shadow-lg",
                 disabled
-                  ? "opacity-50 cursor-not-allowed bg-slate-800 border-slate-700 text-slate-500"
+                  ? "opacity-50 cursor-not-allowed bg-secondary border-border text-muted-foreground"
                   : isSelected
                     ? "bg-emerald-600 border-emerald-400 text-white -translate-y-4 shadow-emerald-600/30 shadow-xl ring-2 ring-emerald-400/50"
-                    : "bg-slate-100 border-slate-300 text-slate-900 hover:-translate-y-2 hover:shadow-xl cursor-pointer active:translate-y-0"
+                    : "bg-foreground text-background border-border text-background hover:-translate-y-2 hover:shadow-xl cursor-pointer active:translate-y-0"
               )}
               style={{
                 animationDelay: `${index * 30}ms`,
@@ -43,7 +43,7 @@ const CardHand = ({ cards, selectedCard, onSelect, disabled }) => {
       </div>
       
       {disabled && (
-        <p className="text-center text-slate-500 text-sm mt-4">
+        <p className="text-center text-muted-foreground text-sm mt-4">
           {selectedCard !== null 
             ? 'Cards revealed - waiting for next task' 
             : 'Select a task to start voting'}

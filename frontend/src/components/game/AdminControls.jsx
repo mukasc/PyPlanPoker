@@ -21,25 +21,25 @@ const AdminControls = ({
         variant="outline"
         size="sm"
         onClick={timerEnd ? onStopTimer : () => onStartTimer(120)}
-        className={`${timerEnd ? 'border-rose-500/50 text-rose-400 bg-rose-500/10' : 'border-slate-700 text-slate-400'} h-9`}
+        className={`${timerEnd ? 'border-rose-500/50 text-rose-400 bg-rose-500/10' : 'border-border text-muted-foreground'} h-9`}
       >
         <Hourglass className={`w-4 h-4 mr-2 ${timerEnd ? 'animate-spin' : ''}`} />
         {timerEnd ? 'Stop Timer' : 'Timer 2m'}
       </Button>
       {/* Vote Progress */}
       {hasActiveTask && !cardsRevealed && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-lg border border-slate-700">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border">
           <div className="flex gap-0.5">
             {Array.from({ length: totalVoters }).map((_, i) => (
               <div
                 key={i}
                 className={`w-2 h-2 rounded-full transition-colors ${
-                  i < votedCount ? 'bg-emerald-400' : 'bg-slate-600'
+                  i < votedCount ? 'bg-emerald-400' : 'bg-muted-foreground/20'
                 }`}
               />
             ))}
           </div>
-          <span className="text-sm text-slate-400 font-mono">
+          <span className="text-sm text-muted-foreground font-mono">
             {votedCount}/{totalVoters}
           </span>
         </div>
@@ -67,7 +67,7 @@ const AdminControls = ({
         <Button
           data-testid="reset-votes-btn"
           onClick={onReset}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
+          className="bg-primary hover:bg-primary/90 text-white font-medium"
         >
           <RotateCcw className="w-4 h-4 mr-2" />
           Clear & Revote

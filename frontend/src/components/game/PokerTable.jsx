@@ -174,11 +174,11 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, ti
 
   if (!activeTask) {
     return (
-      <div className="flex flex-col items-center justify-center text-slate-400 gap-4">
-        <AlertCircle className="w-16 h-16 text-slate-600" />
+      <div className="flex flex-col items-center justify-center text-muted-foreground gap-4">
+        <AlertCircle className="w-16 h-16 text-muted-foreground" />
         <div className="text-center">
-          <p className="text-lg font-medium text-slate-300">No Active Task</p>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-lg font-medium text-foreground/90">No Active Task</p>
+          <p className="text-sm text-muted-foreground mt-1">
             {voters.some(u => u.is_admin) 
               ? 'Select a task to start voting'
               : 'Waiting for admin to select a task'}
@@ -192,11 +192,11 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, ti
     <div className="relative w-full max-w-4xl aspect-[16/10]">
       {/* Table Background */}
       <div className={cn(
-        "absolute inset-8 md:inset-12 bg-slate-900/80 rounded-[3rem] border-4 border-slate-700/50 shadow-2xl shadow-black/50 transition-all duration-1000",
+        "absolute inset-8 md:inset-12 bg-card/80 rounded-[3rem] border-4 border-border/50 shadow-2xl shadow-black/50 transition-all duration-1000",
         cardsRevealed && voteStats?.isAbsoluteConsensus && "consensus-glow"
       )}>
         {/* Inner felt */}
-        <div className="absolute inset-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-[2rem] border border-slate-700/30" />
+        <div className="absolute inset-4 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-[2rem] border border-border/30" />
         
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -207,26 +207,26 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, ti
                   <div className="text-6xl md:text-7xl font-bold text-emerald-400 font-mono mb-2">
                     {voteStats.consensus}
                   </div>
-                  <div className="text-slate-400 text-sm">Consensus!</div>
+                  <div className="text-muted-foreground text-sm">Consensus!</div>
                 </>
               ) : (
                 <>
-                  <div className="text-5xl md:text-6xl font-bold text-indigo-400 font-mono mb-2">
+                  <div className="text-5xl md:text-6xl font-bold text-primary font-mono mb-2">
                     {voteStats.average}
                   </div>
-                  <div className="text-slate-500 text-xs mb-4">Average</div>
+                  <div className="text-muted-foreground text-xs mb-4">Average</div>
                   <div className="flex gap-6 text-sm">
                     <div className="text-center">
-                      <div className="text-slate-400 font-mono text-lg">{voteStats.min}</div>
-                      <div className="text-slate-600 text-xs">Min</div>
+                      <div className="text-muted-foreground font-mono text-lg">{voteStats.min}</div>
+                      <div className="text-muted-foreground text-xs">Min</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-slate-400 font-mono text-lg">{voteStats.max}</div>
-                      <div className="text-slate-600 text-xs">Max</div>
+                      <div className="text-muted-foreground font-mono text-lg">{voteStats.max}</div>
+                      <div className="text-muted-foreground text-xs">Max</div>
                     </div>
                     <div className="text-center">
                       <div className="text-amber-400 font-mono text-lg">{voteStats.spread}</div>
-                      <div className="text-slate-600 text-xs">Spread</div>
+                      <div className="text-muted-foreground text-xs">Spread</div>
                     </div>
                   </div>
                 </>
@@ -235,7 +235,7 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, ti
           ) : (
             <div className="text-center">
               {timeLeft !== null ? (
-                <div className={`flex flex-col items-center justify-center animate-in zoom-in duration-300 ${timeLeft <= 10 ? 'text-rose-500 animate-pulse' : 'text-indigo-400'}`}>
+                <div className={`flex flex-col items-center justify-center animate-in zoom-in duration-300 ${timeLeft <= 10 ? 'text-rose-500 animate-pulse' : 'text-primary'}`}>
                    <div className="text-6xl md:text-7xl font-bold font-mono">
                     {formatTime(timeLeft)}
                   </div>
@@ -243,7 +243,7 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, ti
                   {timeLeft === 0 && <div className="text-xl font-bold mt-2 animate-bounce">TIME UP!</div>}
                 </div>
               ) : (
-                <div className="text-slate-500 text-sm">
+                <div className="text-muted-foreground text-sm">
                   {votes.length === 0 ? 'Waiting for votes...' : `${votes.length}/${voters.length} voted`}
                 </div>
               )}
@@ -276,8 +276,8 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, ti
             {/* Name badge */}
             <div className={`px-3 py-1 rounded-full text-xs font-medium truncate max-w-24 ${
               isCurrentUser 
-                ? 'bg-indigo-600/80 text-white' 
-                : 'bg-slate-800/90 text-slate-300'
+                ? 'bg-primary/80 text-white' 
+                : 'bg-secondary/90 text-foreground/90'
             }`}>
               {user.name}
             </div>

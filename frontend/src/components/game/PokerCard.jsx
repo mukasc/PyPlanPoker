@@ -7,10 +7,10 @@ const PokerCard = ({ value, faceUp, hasVoted, isCurrentUser }) => {
         "w-12 h-18 md:w-16 md:h-24 rounded-lg shadow-xl transition-all duration-500 transform-gpu",
         "flex items-center justify-center",
         faceUp 
-          ? "bg-slate-100 border-2 border-slate-300 rotate-0" 
+          ? "bg-foreground text-background border-2 border-border rotate-0" 
           : hasVoted
             ? "bg-gradient-to-br from-indigo-600 to-violet-700 border-2 border-indigo-400/30"
-            : "bg-slate-800 border-2 border-slate-700",
+            : "bg-secondary border-2 border-border",
         isCurrentUser && hasVoted && !faceUp && "ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-slate-950"
       )}
       style={{
@@ -19,7 +19,7 @@ const PokerCard = ({ value, faceUp, hasVoted, isCurrentUser }) => {
       }}
     >
       {faceUp ? (
-        <span className="text-2xl md:text-3xl font-bold font-mono text-slate-900">
+        <span className="text-2xl md:text-3xl font-bold font-mono text-background">
           {value}
         </span>
       ) : hasVoted ? (
@@ -40,7 +40,7 @@ const PokerCard = ({ value, faceUp, hasVoted, isCurrentUser }) => {
           </div>
         </div>
       ) : (
-        <div className="w-2 h-2 bg-slate-600 rounded-full" />
+        <div className="w-2 h-2 bg-muted-foreground/20 rounded-full" />
       )}
     </div>
   );

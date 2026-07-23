@@ -24,7 +24,7 @@ code, .font-mono {
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 142.1 76.2% 36.3%;
+    --primary: 243 75% 59%; /* Indigo */
     --primary-foreground: 355.7 100% 97.3%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -36,7 +36,7 @@ code, .font-mono {
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 142.1 76.2% 36.3%;
+    --ring: 243 75% 59%; /* Indigo */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -45,14 +45,14 @@ code, .font-mono {
     --radius: 0.5rem;
   }
 
-  .dark {
+  .theme-classic, .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 142.1 76.2% 36.3%;
+    --primary: 243 75% 59%; /* Indigo */
     --primary-foreground: 355.7 100% 97.3%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -64,7 +64,34 @@ code, .font-mono {
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 142.1 76.2% 36.3%;
+    --ring: 243 75% 59%; /* Indigo */
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  .theme-bms, .light {
+    --background: 210 40% 98%; /* #f9fafb */
+    --foreground: 215 28% 17%; /* #1f2937 */
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 215 28% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
+    --primary: 31 77% 51%; /* BMS Orange #e28723 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 215 16% 47%; /* #6b7280 */
+    --accent: 210 40% 96.1%; /* #f3f4f6 */
+    --accent-foreground: 215 28% 17%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 13% 91%; /* #e5e7eb */
+    --input: 220 13% 91%;
+    --ring: 31 77% 51%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -79,9 +106,6 @@ code, .font-mono {
   }
   body {
     @apply bg-background text-foreground;
-  }
-  html {
-    @apply dark;
   }
 }
 
@@ -108,4 +132,15 @@ code, .font-mono {
 
 .consensus-glow {
   animation: consensus-pulse 3s infinite ease-in-out !important;
+}
+
+/* My Rooms Tabs Custom Styling */
+.my-rooms-tabs-list [data-state=active] {
+  color: #ffffff !important;
+}
+.theme-classic .my-rooms-tabs-list [data-state=active] {
+  background-color: hsl(var(--primary)) !important;
+}
+.theme-bms .my-rooms-tabs-list [data-state=active] {
+  background-color: hsl(var(--primary)) !important;
 }

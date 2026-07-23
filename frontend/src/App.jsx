@@ -15,7 +15,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  const { setGlobalUser, globalUser } = useAuthStore();
+  const { setGlobalUser, globalUser, theme } = useAuthStore();
 
   useEffect(() => {
     // 1. Verificar se estamos num iframe (embedded)
@@ -50,8 +50,15 @@ function App() {
     }
   }, [setGlobalUser, globalUser]);
 
+  useEffect(() => {
+    document.documentElement.classList.remove('theme-classic', 'theme-bms', 'dark', 'light');
+    document.documentElement.classList.add(`theme-${theme}`);
+    document.documentElement.classList.add(theme === 'classic' ? 'dark' : 'light');
+    document.documentElement.style.colorScheme = theme === 'classic' ? 'dark' : 'light';
+  }, [theme]);
+
   return (
-    <div className="App dark">
+    <div className="App">
       <BackendHealthCheck>
         <BrowserRouter>
           <Routes>
