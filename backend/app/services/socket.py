@@ -123,10 +123,17 @@ async def disconnect(sid):
         logger.info(f"🔌 Socket Disconnect: User {user_id} from Room {room_id}")
         del socket_users[sid]
         
+        has_other_sockets = False
+        for s_id, s_info in socket_users.items():
+            if s_info["user_id"] == user_id and s_info["room_id"] == room_id:
+                has_other_sockets = True
+                break
+                
         db = get_db()
         if db is not None:
-            await db.users.update_one({"id": user_id, "room_id": room_id}, {"$set": {"is_online": False}})
-            
+            if not has_other_sockets:
+                await db.users.update_one({"id": user_id, "room_id": room_id}, {"$set": {"is_online": False}})
+                
             room = await db.rooms.find_one({"id": room_id})
             if room and room.get("active_task_id") and not room.get("cards_revealed"):
                 if await check_all_voted(room_id, room["active_task_id"]):
