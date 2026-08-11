@@ -24,6 +24,7 @@ const Login = () => {
   const handleSuccess = async (response) => {
     try {
       const res = await api.post('/api/auth/google', { credential: response.credential });
+      localStorage.setItem('access_token', res.data.access_token);
       setGlobalUser(res.data);
       toast.success('Successfully logged in');
       navigate('/');
@@ -42,6 +43,7 @@ const Login = () => {
     
     try {
       const res = await api.post('/api/auth/guest', { name: guestName.trim() });
+      localStorage.setItem('access_token', res.data.access_token);
       setGlobalUser(res.data);
       toast.success('Joined as Guest');
       navigate('/');

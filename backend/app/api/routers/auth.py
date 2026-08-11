@@ -38,8 +38,8 @@ async def auth_google(request: Request, input: AuthGoogle, response: Response):
             value=token,
             httponly=True,
             max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            samesite="lax",
-            secure=False
+            samesite="none",
+            secure=True
         )
         
         return {
@@ -65,8 +65,8 @@ async def auth_guest(request: Request, input: GuestAuth, response: Response):
         value=token,
         httponly=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=False
+        samesite="none",
+        secure=True
     )
     
     return {
@@ -79,5 +79,5 @@ async def auth_guest(request: Request, input: GuestAuth, response: Response):
 
 @router.post("/logout")
 async def auth_logout(response: Response):
-    response.delete_cookie(key="access_token", samesite="lax")
+    response.delete_cookie(key="access_token", samesite="none", secure=True)
     return {"status": "success"}
