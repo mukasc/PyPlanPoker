@@ -349,7 +349,7 @@ const Room = () => {
               )}
             </div>
           </header>
-          <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
+          <div className="flex-1 flex items-center justify-center p-6 overflow-hidden min-h-0">
             <PokerTable
               users={roomState.users}
               votes={roomState.votes}

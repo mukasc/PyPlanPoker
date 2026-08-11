@@ -189,7 +189,7 @@ const PokerTable = ({ users, votes, cardsRevealed, currentUserId, activeTask, ti
   }
 
   return (
-    <div className="relative w-full max-w-4xl aspect-[16/10]">
+    <div className="relative w-full max-h-full max-w-4xl aspect-[16/10] min-h-0 flex-shrink-0">
       {/* Table Background */}
       <div className={cn(
         "absolute inset-8 md:inset-12 bg-card/80 rounded-[3rem] border-4 border-border/50 shadow-2xl shadow-black/50 transition-all duration-1000",
