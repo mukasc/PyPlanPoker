@@ -45,7 +45,7 @@
             display: grid;
             grid-template-columns: 1fr 350px;
             gap: 2rem;
-            overflow-y: auto;
+            overflow: hidden;
         }
         .iframe-container {
             background: white;
@@ -227,10 +227,9 @@
             } else if (type === 'POKER_READY') {
                 addLog('🚀 PyPlanPoker está pronto dentro do Iframe.');
             } else if (type === 'RESIZE_IFRAME') {
-                if (data.height && iframe) {
-                    iframe.style.height = `${data.height}px`;
-                    iframe.style.flex = 'none'; // Remove o flex para respeitar a altura dinâmica
-                }
+                // Como o PyPlanPoker possui layout de Dashboard (h-screen e flex interno),
+                // o ResizeObserver dinâmico pode espremer a interface. 
+                // Ignoramos o ajuste manual de height para manter o flex: 1 fluído.
             }
         });
 
